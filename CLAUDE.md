@@ -18,11 +18,16 @@ pnpm preview    # serve dist/ locally
 
 No test suite is configured yet.
 
+## Verifying changes
+
+There is no automated test suite, so **after implementing any visual or behavioral change, verify it in a real browser using the `/claude-in-chrome` skill** — load the affected route against a running `pnpm dev` server, exercise the change, and check the console for errors. `pnpm build` (which runs `tsc`) is the only static gate; treat a clean build plus a browser check as the definition of done.
+
 ## Stack
 
 - **Vite 8** + **React 19** + **TypeScript 6** — pure client-side SPA
 - **react-router-dom v7** — client-side routing
 - **keycloak-js** — authentication (no `@react-keycloak/web`; raw keycloak-js only)
+- **lucide-react** — the only icon set; import named icons (e.g. `import { Plus, Search } from 'lucide-react'`)
 - Package manager: **pnpm**
 
 ## Project overview
@@ -49,7 +54,24 @@ Every route must be behind authentication; unauthenticated users are redirected 
 
 **Always consult `http://localhost:8080/v3/api-docs` (OpenAPI/Swagger) before implementing any backend integration.**
 
-The dev server proxies `/api/*` → `http://localhost:8080/*` (configured in `vite.config.ts`). Pages call the API via `API_BASE = import.meta.env.VITE_API_BASE ?? '/api'`. Always attach `Authorization: Bearer ${token}` using `useKeycloakToken()`.
+The dev server proxies `/api/*` → `http://localhost:8080/*` (configured in `vite.config.ts`, which strips the `/api` prefix). Pages call the API via `API_BASE = import.meta.env.VITE_API_BASE ?? '/api'`. Always attach `Authorization: Bearer ${token}` using `useKeycloakToken()`.
+
+### API layer (`src/lib/api.ts`)
+
+All backend calls live in `src/lib/api.ts` as standalone async functions — **pages never call `fetch` directly**. Follow the existing shape when adding endpoints:
+
+- Each function takes `token` as its **first argument**, then ids, then a data object.
+- Request/response types are co-located here and named `<Entity>Response`, `<Entity>FormData`, and `Paged<Entity>Response` (Spring-style paged envelope: `{ content, totalElements, totalPages, page, size }`).
+- Use the shared `authHeaders(token)` and `throwIfNotOk(res)` helpers. Errors throw an `ApiError` carrying a numeric `.status`.
+
+Consult `http://localhost:8080/v3/api-docs` for the exact request/response schema before writing a new function.
+
+### Page conventions
+
+- Routes live under `src/pages/<area>/`; shared building blocks under `src/components/`. `App.tsx` wires routes inside a single `<AppShell />` layout route. Unbuilt routes render the local `NotImplemented` stub in `App.tsx` — replace the stub with a real page when implementing.
+- Data fetching is `useEffect` + `useState` keyed on `[token, ...params]` (no data-fetching library). Every page tracks `loading` / error / empty as distinct render branches — match the pattern in `CustomersPage.tsx`.
+- Debounce search inputs (~300ms) and reset pagination to page 0 on a new query, as in `CustomersPage.tsx`.
+- Modals use the shared `Modal` component (`src/components/Modal.tsx`) — backdrop-click closes; pass body/footer as children. Entity create/edit modals (e.g. `CustomerFormModal`) take a `mode: 'create' | 'edit'` prop and an `onSaved` callback.
 
 ## Domain language
 
