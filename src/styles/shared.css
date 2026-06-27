@@ -448,6 +448,14 @@ input, select, textarea { font: inherit; }
 .summary-card.warn { border-color: var(--status-overdue-border); }
 .summary-card-value.warn   { color: var(--status-overdue-fg); }
 
+/* customer detail overview row: contact card + two summary stats */
+.customer-overview {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--sp-5);
+  margin-bottom: var(--sp-8);
+}
+
 /* ─── table ───────────────────────────────────────── */
 .data-table-wrap {
   background: var(--surface);
@@ -757,10 +765,10 @@ input, select, textarea { font: inherit; }
 .detail-section-header svg { width: 14px; height: 14px; color: var(--fg-muted); stroke-width: 2; }
 .detail-section-title { font-size: var(--text-sm); font-weight: 600; color: var(--fg); }
 .detail-section-body { padding: var(--sp-6); }
-.detail-row { display: flex; justify-content: space-between; align-items: baseline; padding: var(--sp-2) 0; }
+.detail-row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-4); padding: var(--sp-2) 0; }
 .detail-row + .detail-row { border-top: 1px solid var(--border); }
-.detail-key { font-size: var(--text-sm); color: var(--fg-muted); font-weight: 500; }
-.detail-val { font-size: var(--text-sm); color: var(--fg); font-weight: 500; }
+.detail-key { font-size: var(--text-sm); color: var(--fg-muted); font-weight: 500; flex-shrink: 0; }
+.detail-val { font-size: var(--text-sm); color: var(--fg); font-weight: 500; min-width: 0; text-align: right; overflow-wrap: anywhere; }
 .detail-val.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .detail-val.large { font-size: var(--text-lg); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
@@ -787,6 +795,10 @@ input, select, textarea { font: inherit; }
 @keyframes modal-in {
   from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }
+}
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .modal-header {
   display: flex;
@@ -859,5 +871,29 @@ input, select, textarea { font: inherit; }
   .page-title { font-size: 1.5rem; }
   .form-grid-2 { grid-template-columns: 1fr; }
   .data-table th:nth-child(n+5), .data-table td:nth-child(n+5) { display: none; }
+
+  /* customer detail overview stacks to a single column */
+  .customer-overview { grid-template-columns: 1fr; gap: var(--sp-3); }
+
+  /* modals become bottom sheets, pinned to the bottom edge */
+  .modal-overlay.open { place-items: end center; }
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92dvh;
+    padding: var(--sp-5);
+    padding-bottom: 0;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    animation: sheet-in 240ms cubic-bezier(0,0,0.2,1);
+  }
+  /* footer sticks above the home indicator so action buttons stay reachable */
+  .modal-footer {
+    position: sticky;
+    bottom: 0;
+    margin-top: var(--sp-4);
+    margin-inline: calc(-1 * var(--sp-5));
+    padding: var(--sp-4) var(--sp-5) calc(var(--sp-4) + env(safe-area-inset-bottom));
+    background: var(--surface);
+  }
 }
 

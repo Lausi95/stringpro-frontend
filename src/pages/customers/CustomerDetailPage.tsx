@@ -118,7 +118,7 @@ export default function CustomerDetailPage() {
       </div>
 
       <div className="page-body">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--sp-5)', marginBottom: 'var(--sp-8)' }}>
+        <div className="customer-overview">
           <div className="card">
             <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-muted)', fontFamily: 'var(--font-mono)', marginBottom: 'var(--sp-4)' }}>
               Contact
