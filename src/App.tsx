@@ -3,6 +3,7 @@ import AppShell from './components/AppShell'
 import HomePage from './pages/HomePage'
 import CustomersPage from './pages/customers/CustomersPage'
 import CustomerDetailPage from './pages/customers/CustomerDetailPage'
+import StringsPage from './pages/strings/StringsPage'
 
 function NotImplemented({ name }: { name: string }) {
   return (
@@ -22,7 +23,7 @@ export default function App() {
           <Route path="/jobs/:id" element={<NotImplemented name="Job Detail" />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
-          <Route path="/strings" element={<NotImplemented name="Strings" />} />
+          <Route path="/strings" element={<StringsPage />} />
           <Route path="/payments" element={<NotImplemented name="Payments" />} />
           <Route path="/settings" element={<NotImplemented name="Settings" />} />
         </Route>

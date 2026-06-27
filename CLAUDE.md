@@ -133,7 +133,7 @@ Map each prototype HTML file to a React route:
 | `jobs-detail.html` | `/jobs/:id` | 4-stage progress bar, stringing details, payment section |
 | `customers.html` | `/customers` | Searchable list with active job count |
 | `customer-detail.html` | `/customers/:id` | Contact info, racket grid, job history |
-| `strings.html` | `/strings` | String inventory table with available toggle |
+| `strings.html` | `/strings` | Reel inventory card grid with per-reel state control |
 | `payments.html` | `/payments` | Outstanding vs. collected; tabs for unpaid/paid |
 | `settings.html` | `/settings` | Service fee, string fee defaults, stringer profile |
 
