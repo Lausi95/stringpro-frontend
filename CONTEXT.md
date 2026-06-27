@@ -23,6 +23,11 @@ _Avoid_: Client, player
 **Racket**: A tennis racket owned by a Customer and the physical subject of a Job.
 _Avoid_: Equipment, item
 
+**Head Size**: The area of a Racket's hitting surface, measured in cm² (typically 400–900).
+
+**String Pattern**: The grid layout of a Racket's strings, written as mains × crosses (e.g. 16×19). Stored as two counts — the vertical strings (mains) and horizontal strings (crosses).
+_Avoid_: String setup, grid
+
 ### Pricing
 
 **Service Fee**: The labor charge applied to a Job, configured in Settings.

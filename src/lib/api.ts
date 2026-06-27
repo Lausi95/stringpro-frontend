@@ -26,6 +26,27 @@ export interface CustomerFormData {
   notes?: string
 }
 
+export interface RacketResponse {
+  id: string
+  customerId: string
+  brand: string
+  model: string
+  headSize: number
+  stringMains: number
+  stringCrosses: number
+  notes?: string
+  createdAt: string
+}
+
+export interface RacketFormData {
+  brand: string
+  model: string
+  headSize: number
+  stringMains: number
+  stringCrosses: number
+  notes?: string
+}
+
 interface ApiError extends Error {
   status: number
 }
@@ -93,6 +114,49 @@ export async function updateCustomer(
 
 export async function deleteCustomer(token: string, id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/customers/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  })
+  await throwIfNotOk(res)
+}
+
+export async function listRackets(token: string, customerId: string): Promise<RacketResponse[]> {
+  const query = new URLSearchParams({ customerId })
+  const res = await fetch(`${API_BASE}/rackets?${query}`, { headers: authHeaders(token) })
+  await throwIfNotOk(res)
+  return res.json()
+}
+
+export async function createRacket(
+  token: string,
+  customerId: string,
+  data: RacketFormData,
+): Promise<RacketResponse> {
+  const res = await fetch(`${API_BASE}/rackets`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ ...data, customerId }),
+  })
+  await throwIfNotOk(res)
+  return res.json()
+}
+
+export async function updateRacket(
+  token: string,
+  id: string,
+  data: RacketFormData,
+): Promise<RacketResponse> {
+  const res = await fetch(`${API_BASE}/rackets/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(token),
+    body: JSON.stringify(data),
+  })
+  await throwIfNotOk(res)
+  return res.json()
+}
+
+export async function deleteRacket(token: string, id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/rackets/${id}`, {
     method: 'DELETE',
     headers: authHeaders(token),
   })

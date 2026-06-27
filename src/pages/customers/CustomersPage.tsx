@@ -1,18 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, X, Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { useKeycloakToken } from '../../lib/KeycloakContext'
-import { listCustomers, createCustomer, type CustomerResponse, type CustomerFormData } from '../../lib/api'
+import { listCustomers, type CustomerResponse } from '../../lib/api'
+import CustomerFormModal from '../../components/CustomerFormModal'
 
 const PAGE_SIZE = 20
-
-const emptyForm: CustomerFormData = {
-  firstName: '',
-  lastName: '',
-  email: '',
-  phoneNumber: '',
-  notes: '',
-}
 
 export default function CustomersPage() {
   const token = useKeycloakToken()
@@ -28,9 +21,6 @@ export default function CustomersPage() {
   const [fetchError, setFetchError] = useState<string | null>(null)
 
   const [showAddModal, setShowAddModal] = useState(false)
-  const [form, setForm] = useState<CustomerFormData>(emptyForm)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -54,27 +44,7 @@ export default function CustomersPage() {
   }, [token, page, debouncedSearch])
 
   function openAddModal() {
-    setForm(emptyForm)
-    setFormError(null)
     setShowAddModal(true)
-  }
-
-  function closeAddModal() {
-    setShowAddModal(false)
-  }
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-    setFormError(null)
-    try {
-      const customer = await createCustomer(token, form)
-      navigate(`/customers/${customer.id}`)
-    } catch (err: unknown) {
-      const status = (err as { status?: number }).status
-      setFormError(status === 409 ? 'Email is already in use.' : 'Failed to save customer. Please try again.')
-      setSaving(false)
-    }
   }
 
   return (
@@ -190,94 +160,11 @@ export default function CustomersPage() {
       </div>
 
       {showAddModal && (
-        <div
-          className="modal-overlay open"
-          onClick={(e) => { if (e.target === e.currentTarget) closeAddModal() }}
-        >
-          <div className="modal">
-            <div className="modal-header">
-              <span className="modal-title">Add Customer</span>
-              <button className="modal-close" onClick={closeAddModal} type="button">
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleCreate}>
-              <div className="form-grid" style={{ gap: 'var(--sp-4)' }}>
-                <div className="form-grid form-grid-2">
-                  <div className="field">
-                    <label htmlFor="new-firstname">First name</label>
-                    <input
-                      id="new-firstname"
-                      type="text"
-                      className="input"
-                      placeholder="Marc"
-                      required
-                      value={form.firstName}
-                      onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="new-lastname">Last name</label>
-                    <input
-                      id="new-lastname"
-                      type="text"
-                      className="input"
-                      placeholder="Dubois"
-                      required
-                      value={form.lastName}
-                      onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
-                    />
-                  </div>
-                </div>
-                <div className="field">
-                  <label htmlFor="new-email">Email</label>
-                  <input
-                    id="new-email"
-                    type="email"
-                    className="input"
-                    placeholder="marc@example.com"
-                    required
-                    value={form.email}
-                    onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="new-phone">Phone</label>
-                  <input
-                    id="new-phone"
-                    type="tel"
-                    className="input"
-                    placeholder="+41 78 123 45 67"
-                    required
-                    value={form.phoneNumber}
-                    onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value }))}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="new-notes">Notes</label>
-                  <textarea
-                    id="new-notes"
-                    className="textarea"
-                    placeholder="Anything useful to remember about this customer…"
-                    value={form.notes}
-                    onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                  />
-                </div>
-                {formError && (
-                  <p style={{ color: 'var(--status-overdue-fg)', fontSize: 'var(--text-sm)', margin: 0 }}>
-                    {formError}
-                  </p>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-ghost" onClick={closeAddModal}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Saving…' : 'Save Customer'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <CustomerFormModal
+          mode="create"
+          onClose={() => setShowAddModal(false)}
+          onSaved={(customer) => navigate(`/customers/${customer.id}`)}
+        />
       )}
     </>
   )

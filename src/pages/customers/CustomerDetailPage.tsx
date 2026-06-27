@@ -1,12 +1,23 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Plus, ChevronRight } from 'lucide-react'
 import { useKeycloakToken } from '../../lib/KeycloakContext'
-import { getCustomer, deleteCustomer, type CustomerResponse } from '../../lib/api'
+import {
+  getCustomer,
+  deleteCustomer,
+  listRackets,
+  type CustomerResponse,
+  type RacketResponse,
+} from '../../lib/api'
+import CustomerFormModal from '../../components/CustomerFormModal'
+import RacketFormModal from '../../components/RacketFormModal'
 
 function formatSince(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
 }
+
+/** Modal target: create a new racket, or edit an existing one. */
+type RacketModalState = { mode: 'create' } | { mode: 'edit'; racket: RacketResponse }
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -20,6 +31,13 @@ export default function CustomerDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  const [showEditCustomer, setShowEditCustomer] = useState(false)
+
+  const [rackets, setRackets] = useState<RacketResponse[]>([])
+  const [racketsLoading, setRacketsLoading] = useState(true)
+  const [racketsError, setRacketsError] = useState<string | null>(null)
+  const [racketModal, setRacketModal] = useState<RacketModalState | null>(null)
+
   useEffect(() => {
     if (!id) return
     setLoading(true)
@@ -28,6 +46,20 @@ export default function CustomerDetailPage() {
       .catch(() => setError('Customer not found.'))
       .finally(() => setLoading(false))
   }, [token, id])
+
+  const loadRackets = useCallback(() => {
+    if (!id) return
+    setRacketsLoading(true)
+    setRacketsError(null)
+    listRackets(token, id)
+      .then(setRackets)
+      .catch(() => setRacketsError('Failed to load rackets.'))
+      .finally(() => setRacketsLoading(false))
+  }, [token, id])
+
+  useEffect(() => {
+    loadRackets()
+  }, [loadRackets])
 
   async function handleDelete() {
     if (!id) return
@@ -76,9 +108,9 @@ export default function CustomerDetailPage() {
             <Plus size={16} />
             New Job
           </Link>
-          <Link to={`/customers/${customer.id}/edit`} className="btn btn-ghost">
+          <button className="btn btn-ghost" onClick={() => setShowEditCustomer(true)}>
             Edit
-          </Link>
+          </button>
           <button className="btn btn-danger" onClick={() => setShowDeleteDialog(true)}>
             Delete
           </button>
@@ -130,9 +162,37 @@ export default function CustomerDetailPage() {
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: 'var(--sp-5)' }}>
             Rackets
           </h2>
-          <div className="card" style={{ color: 'var(--fg-muted)', fontSize: 'var(--text-sm)', fontStyle: 'italic' }}>
-            Not integrated yet
-          </div>
+          {racketsLoading ? (
+            <div style={{ color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>Loading…</div>
+          ) : racketsError ? (
+            <div className="card" style={{ color: 'var(--status-overdue-fg)', fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-3)' }}>
+              {racketsError}
+              <button className="btn btn-sm btn-ghost" onClick={loadRackets}>Try again</button>
+            </div>
+          ) : (
+            <div className="racket-grid">
+              {rackets.map((r) => (
+                <button
+                  key={r.id}
+                  className="racket-card"
+                  onClick={() => setRacketModal({ mode: 'edit', racket: r })}
+                >
+                  <div className="cell-primary" style={{ marginBottom: 'var(--sp-1)' }}>
+                    {r.brand} {r.model}
+                  </div>
+                  <div className="cell-secondary">
+                    Head: {r.headSize} cm² · {r.stringMains}×{r.stringCrosses}
+                  </div>
+                  <div className="racket-card-note">{r.notes}</div>
+                  {/* TODO: active-job / last-job badges once jobs API is integrated */}
+                </button>
+              ))}
+              <button className="add-racket-card" onClick={() => setRacketModal({ mode: 'create' })}>
+                <Plus size={20} />
+                Add racket
+              </button>
+            </div>
+          )}
         </div>
 
         <div>
@@ -173,6 +233,35 @@ export default function CustomerDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showEditCustomer && (
+        <CustomerFormModal
+          mode="edit"
+          initial={customer}
+          onClose={() => setShowEditCustomer(false)}
+          onSaved={(updated) => {
+            setCustomer(updated)
+            setShowEditCustomer(false)
+          }}
+        />
+      )}
+
+      {racketModal && id && (
+        <RacketFormModal
+          mode={racketModal.mode}
+          customerId={id}
+          initial={racketModal.mode === 'edit' ? racketModal.racket : undefined}
+          onClose={() => setRacketModal(null)}
+          onSaved={() => {
+            setRacketModal(null)
+            loadRackets()
+          }}
+          onDeleted={() => {
+            setRacketModal(null)
+            loadRackets()
+          }}
+        />
       )}
     </>
   )
