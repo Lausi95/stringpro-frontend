@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import AppShell from './components/AppShell'
 import HomePage from './pages/HomePage'
+import CustomersPage from './pages/customers/CustomersPage'
+import CustomerDetailPage from './pages/customers/CustomerDetailPage'
+import CustomerEditPage from './pages/customers/CustomerEditPage'
 
 function NotImplemented({ name }: { name: string }) {
   return (
@@ -18,8 +21,9 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/jobs/new" element={<NotImplemented name="New Job" />} />
           <Route path="/jobs/:id" element={<NotImplemented name="Job Detail" />} />
-          <Route path="/customers" element={<NotImplemented name="Customers" />} />
-          <Route path="/customers/:id" element={<NotImplemented name="Customer Detail" />} />
+          <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/customers/:id" element={<CustomerDetailPage />} />
+          <Route path="/customers/:id/edit" element={<CustomerEditPage />} />
           <Route path="/strings" element={<NotImplemented name="Strings" />} />
           <Route path="/payments" element={<NotImplemented name="Payments" />} />
           <Route path="/settings" element={<NotImplemented name="Settings" />} />
