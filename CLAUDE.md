@@ -2,6 +2,29 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git conventions
+
+- Commit messages must follow **conventional commits**: `type(scope): description` (e.g. `feat(jobs): add stage progress bar`, `fix(auth): handle token expiry`)
+- Always commit on the **current branch** — never create feature branches unless explicitly instructed
+- Common types: `feat`, `fix`, `refactor`, `style`, `chore`, `docs`
+
+## Commands
+
+```bash
+pnpm dev        # start dev server (http://localhost:5173)
+pnpm build      # tsc + vite build → dist/
+pnpm preview    # serve dist/ locally
+```
+
+No test suite is configured yet.
+
+## Stack
+
+- **Vite 8** + **React 19** + **TypeScript 6** — pure client-side SPA
+- **react-router-dom v7** — client-side routing
+- **keycloak-js** — authentication (no `@react-keycloak/web`; raw keycloak-js only)
+- Package manager: **pnpm**
+
 ## Project overview
 
 StringPro is a React (latest) SPA for managing a tennis stringing business — jobs, customers, string inventory, and payments. The app is strictly authenticated via Keycloak.
@@ -18,7 +41,30 @@ StringPro is a React (latest) SPA for managing a tennis stringing business — j
 
 Keycloak realm: `https://auth.lausi95.net/realms/stringpro`
 
-Every route must be behind authentication. Use `@react-keycloak/web` or `keycloak-js` to wrap the app; unauthenticated users are redirected to the Keycloak login page. Never render application UI before the token is confirmed valid.
+The keycloak singleton (`src/lib/keycloak.ts`) is initialized with `onLoad: 'login-required'` in `main.tsx` before React mounts — the app never renders without a valid token. `KeycloakProvider` (`src/lib/KeycloakContext.tsx`) exposes the token via `useKeycloakToken()`. Every API call must include `Authorization: Bearer <token>` using that hook.
+
+Every route must be behind authentication; unauthenticated users are redirected to the Keycloak login page. Do not use `@react-keycloak/web` — the project uses raw `keycloak-js`.
+
+## API integration
+
+**Always consult `http://localhost:8080/v3/api-docs` (OpenAPI/Swagger) before implementing any backend integration.**
+
+The dev server proxies `/api/*` → `http://localhost:8080/*` (configured in `vite.config.ts`). Pages call the API via `API_BASE = import.meta.env.VITE_API_BASE ?? '/api'`. Always attach `Authorization: Bearer ${token}` using `useKeycloakToken()`.
+
+## Domain language
+
+Use these terms exactly — they match the backend and the UI copy:
+
+| Term | Meaning | Avoid |
+|---|---|---|
+| **Job** | Unit of work — a Racket brought in to be strung | Order, request, ticket |
+| **Stage** | Lifecycle state of a Job | Status, phase, step |
+| **Stringer** | The person who operates the app | User, operator, admin |
+| **Customer** | Person who brings Rackets in | Client, player |
+| **Racket** | Tennis racket owned by a Customer | Equipment, item |
+| **Service Fee** | Labor charge configured in Settings | Labor cost, stringing fee |
+| **String Fee** | Material cost per String in inventory | Material cost, string cost |
+| **String** | A string product in inventory | Product, item, cord |
 
 ## Design system (source of truth: `.claude/prototype/shared.css`)
 
