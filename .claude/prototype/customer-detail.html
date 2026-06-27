@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Marc Dubois — StringPro</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    .racket-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-4); }
+    .racket-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: var(--sp-5);
+      box-shadow: var(--sh-sm);
+      transition: box-shadow 160ms ease-out, transform 160ms ease-out;
+    }
+    .racket-card:hover { box-shadow: var(--sh-md); transform: translateY(-1px); }
+    .racket-icon { width: 40px; height: 40px; background: var(--surface-tinted); border-radius: var(--r-md); display:grid; place-items:center; margin-bottom:var(--sp-3); color: var(--clay-400); }
+    .racket-icon svg { width: 20px; height: 20px; stroke-width: 1.75; }
+    .add-racket-card {
+      border: 2px dashed var(--border);
+      border-radius: var(--r-lg);
+      padding: var(--sp-5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-2);
+      cursor: pointer;
+      color: var(--fg-muted);
+      font-size: var(--text-sm);
+      transition: border-color 120ms, color 120ms;
+      min-height: 120px;
+      background: transparent;
+    }
+    .add-racket-card:hover { border-color: var(--accent); color: var(--accent); }
+    .add-racket-card svg { width: 20px; height: 20px; stroke-width: 1.75; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+      </div>
+      <span class="sidebar-brand-name">StringPro</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="customers.html" class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Customers</span>
+      </a>
+      <a href="strings.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+        <span>Strings</span>
+      </a>
+      <a href="payments.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        <span>Payments</span>
+      </a>
+      <a href="settings.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header" data-od-id="page-header">
+      <div class="page-header-left">
+        <div class="breadcrumb">
+          <a href="customers.html">Customers</a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span>Marc Dubois</span>
+        </div>
+        <h1 class="page-title">Marc Dubois</h1>
+      </div>
+      <div style="display:flex;gap:var(--sp-3);">
+        <a href="jobs-new.html" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Job
+        </a>
+        <button class="btn btn-ghost">Edit</button>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <!-- Info + stats row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-5);margin-bottom:var(--sp-8);" data-od-id="customer-info">
+        <div class="card" style="grid-column:span 1;">
+          <div style="font-size:var(--text-xs);font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:var(--fg-muted);font-family:var(--font-mono);margin-bottom:var(--sp-4);">Contact</div>
+          <div class="detail-row" style="border-top:none;padding-top:0;">
+            <span class="detail-key">Email</span>
+            <span class="detail-val" style="font-size:var(--text-xs);">marc.dubois@gmail.com</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Phone</span>
+            <span class="detail-val mono">+41 78 123 45 67</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Since</span>
+            <span class="detail-val mono">Mar 2025</span>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Jobs total</div>
+          <div class="summary-card-value accent">5</div>
+          <div class="summary-card-sub">2 active now</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Total spent</div>
+          <div class="summary-card-value">€ 45.00</div>
+          <div class="summary-card-sub">€ 17.50 outstanding</div>
+        </div>
+      </div>
+
+      <!-- Rackets -->
+      <div data-od-id="rackets-section" style="margin-bottom:var(--sp-8);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-5);">
+          <h2 style="font-family:var(--font-display);font-size:var(--text-xl);font-weight:700;">Rackets</h2>
+        </div>
+        <div class="racket-grid">
+          <div class="racket-card">
+            <div class="racket-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m14 7-7 8"/><path d="m7 7 8 7"/><path d="M21 21l-1-1"/></svg>
+            </div>
+            <div class="cell-primary" style="margin-bottom:var(--sp-1);">Wilson Pro Staff 97</div>
+            <div class="cell-secondary">2023 model · Head: 630 cm²</div>
+            <div style="margin-top:var(--sp-3);display:flex;gap:var(--sp-2);">
+              <span class="badge badge-progress" style="font-size:10px;">1 active job</span>
+            </div>
+          </div>
+          <div class="racket-card">
+            <div class="racket-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m14 7-7 8"/><path d="m7 7 8 7"/><path d="M21 21l-1-1"/></svg>
+            </div>
+            <div class="cell-primary" style="margin-bottom:var(--sp-1);">Wilson Ultra 100</div>
+            <div class="cell-secondary">Head: 645 cm²</div>
+            <div style="margin-top:var(--sp-3);display:flex;gap:var(--sp-2);">
+              <span class="badge badge-done" style="font-size:10px;">Last job: 26 Jun</span>
+            </div>
+          </div>
+          <button class="add-racket-card" onclick="openAddRacket()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add racket
+          </button>
+        </div>
+      </div>
+
+      <!-- Job history -->
+      <div data-od-id="job-history">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-5);">
+          <h2 style="font-family:var(--font-display);font-size:var(--text-xl);font-weight:700;">Job History</h2>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Racket</th>
+                <th>Strings · Tension</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th class="num-col">Total</th>
+                <th>Payment</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="cursor:pointer;" onclick="window.location='jobs-detail.html'">
+                <td><span class="cell-mono">#001</span></td>
+                <td><div class="cell-primary">Wilson Pro Staff 97</div></td>
+                <td><span class="cell-mono">Babolat RPM Blast 1.25 · 24/22 kg</span></td>
+                <td><span class="cell-mono">26 Jun 2026</span></td>
+                <td><span class="badge badge-queued">Queued</span></td>
+                <td class="num-col"><span style="font-family:var(--font-mono);font-size:var(--text-sm);">€ 17.50</span></td>
+                <td><span class="badge badge-unpaid">Unpaid</span></td>
+              </tr>
+              <tr style="cursor:pointer;" onclick="window.location='jobs-detail.html'">
+                <td><span class="cell-mono">#005</span></td>
+                <td><div class="cell-primary">Wilson Ultra 100</div></td>
+                <td><span class="cell-mono">Wilson NXT 1.30 · 22/20 kg</span></td>
+                <td><span class="cell-mono">20 Jun 2026</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+                <td class="num-col"><span style="font-family:var(--font-mono);font-size:var(--text-sm);">€ 17.50</span></td>
+                <td><span class="badge badge-paid">Paid · PayPal</span></td>
+              </tr>
+              <tr style="cursor:pointer;" onclick="window.location='jobs-detail.html'">
+                <td><span class="cell-mono">#003</span></td>
+                <td><div class="cell-primary">Wilson Pro Staff 97</div></td>
+                <td><span class="cell-mono">Babolat RPM Blast 1.25 · 24/22 kg</span></td>
+                <td><span class="cell-mono">15 May 2026</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+                <td class="num-col"><span style="font-family:var(--font-mono);font-size:var(--text-sm);">€ 17.50</span></td>
+                <td><span class="badge badge-paid">Paid · Cash</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add racket modal -->
+<div class="modal-overlay" id="add-racket-modal" onclick="if(event.target===this)closeAddRacket()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add Racket</span>
+      <button class="modal-close" onclick="closeAddRacket()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="form-grid" style="gap:var(--sp-4);">
+      <div class="form-grid form-grid-2">
+        <div class="field">
+          <label>Brand</label>
+          <input type="text" class="input" placeholder="Wilson, Head, Babolat…" />
+        </div>
+        <div class="field">
+          <label>Model</label>
+          <input type="text" class="input" placeholder="Pro Staff 97, Speed MP…" />
+        </div>
+      </div>
+      <div class="form-grid form-grid-2">
+        <div class="field">
+          <label>Year</label>
+          <input type="number" class="input input-mono" placeholder="2024" min="2000" max="2030" />
+        </div>
+        <div class="field">
+          <label>Head size (cm²)</label>
+          <input type="number" class="input input-mono" placeholder="630" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea class="textarea" placeholder="Any notes about this racket — condition, preferences…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAddRacket()">Cancel</button>
+      <button class="btn btn-primary" onclick="closeAddRacket()">Save Racket</button>
+    </div>
+  </div>
+</div>
+
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <a href="dashboard.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="customers.html" class="mobile-nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Customers
+    </a>
+    <a href="jobs-new.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Job
+    </a>
+    <a href="payments.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/></svg>
+      Payments
+    </a>
+    <a href="settings.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg>
+      Settings
+    </a>
+  </div>
+</nav>
+
+<script>
+function openAddRacket() { document.getElementById('add-racket-modal').classList.add('open'); }
+function closeAddRacket() { document.getElementById('add-racket-modal').classList.remove('open'); }
+</script>
+</body>
+</html>

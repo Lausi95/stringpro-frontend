@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>String Inventory — StringPro</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    /* ── availability toggle ─────────────────────────── */
+    .avail-toggle {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      width: 40px;
+      height: 22px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .avail-toggle input { display: none; }
+    .avail-toggle-track {
+      width: 100%; height: 100%;
+      border-radius: var(--r-full);
+      background: var(--border-strong);
+      transition: background 200ms ease-in-out;
+    }
+    .avail-toggle-thumb {
+      position: absolute;
+      left: 3px;
+      width: 16px; height: 16px;
+      border-radius: var(--r-full);
+      background: var(--surface);
+      box-shadow: 0 1px 3px var(--clay-900);
+      transition: transform 200ms ease-in-out;
+    }
+    .avail-toggle input:checked ~ .avail-toggle-track { background: var(--accent); }
+    .avail-toggle input:checked ~ .avail-toggle-thumb { transform: translateX(18px); }
+
+    /* ── roll grid ───────────────────────────────────── */
+    .roll-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: var(--sp-5);
+    }
+    @media (max-width: 880px) { .roll-grid { grid-template-columns: 1fr; } }
+
+    .roll-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-sm);
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow 160ms ease-out;
+    }
+    .roll-card.inactive { opacity: 0.55; }
+
+    /* header */
+    .roll-header {
+      padding: var(--sp-5) var(--sp-6);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--sp-4);
+    }
+    .roll-name {
+      font-weight: 600;
+      font-size: var(--text-base);
+      color: var(--fg);
+      margin-bottom: var(--sp-2);
+    }
+    .roll-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--sp-2);
+    }
+    .roll-pill {
+      padding: 2px 8px;
+      border-radius: var(--r-sm);
+      background: var(--surface-tinted);
+      color: var(--fg-muted);
+      font-size: var(--text-xs);
+      font-weight: 500;
+    }
+    .roll-pill.price {
+      background: color-mix(in oklch, var(--accent) 10%, transparent);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* meter */
+    .roll-meter {
+      padding: var(--sp-4) var(--sp-6);
+      border-top: 1px solid var(--border);
+    }
+    .roll-meter-bar-wrap {
+      height: 8px;
+      background: var(--clay-200);
+      border-radius: var(--r-full);
+      overflow: hidden;
+      margin-bottom: var(--sp-2);
+    }
+    .roll-meter-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: var(--r-full);
+    }
+    .roll-meter-fill.warn     { background: var(--status-pending); }
+    .roll-meter-fill.critical { background: var(--status-overdue-fg); }
+    .roll-meter-fill.done     { background: var(--border-strong); }
+    .roll-meter-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--text-xs);
+      color: var(--fg-muted);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+    .roll-meter-remaining { color: var(--fg); font-weight: 500; }
+
+    /* financials */
+    .roll-financials {
+      padding: var(--sp-4) var(--sp-6);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-2);
+    }
+    .roll-fin-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: var(--text-sm);
+    }
+    .roll-fin-label { color: var(--fg-muted); }
+    .roll-fin-val { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 500; }
+    .roll-fin-divider { height: 1px; background: var(--border); margin: var(--sp-1) 0; }
+    .roll-fin-net {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      font-size: var(--text-sm);
+      padding: var(--sp-3) var(--sp-4);
+      border-radius: var(--r-md);
+      margin-top: var(--sp-1);
+    }
+    .roll-fin-net.positive { background: var(--status-done-bg); color: var(--status-done-fg); }
+    .roll-fin-net.negative { background: var(--status-overdue-bg); color: var(--status-overdue-fg); }
+    .roll-fin-net-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* footer */
+    .roll-footer {
+      padding: var(--sp-3) var(--sp-6);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface-tinted);
+      border-radius: 0 0 var(--r-lg) var(--r-lg);
+    }
+    .roll-purchase-date { font-size: var(--text-xs); color: var(--fg-muted); font-family: var(--font-mono); }
+    .roll-jobs-btn {
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--accent);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: var(--sp-1) var(--sp-2);
+      border-radius: var(--r-sm);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 120ms ease-out;
+    }
+    .roll-jobs-btn:hover { background: color-mix(in oklch, var(--accent) 8%, transparent); }
+
+    /* expandable jobs list */
+    .roll-jobs-list {
+      border-top: 1px solid var(--border);
+      background: var(--surface-tinted);
+    }
+    .roll-jobs-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--sp-3) var(--sp-6);
+      font-size: var(--text-xs);
+      border-bottom: 1px solid var(--border);
+    }
+    .roll-jobs-item:last-child { border-bottom: none; }
+    .roll-jobs-id { font-family: var(--font-mono); color: var(--accent); font-weight: 600; min-width: 34px; }
+    .roll-jobs-customer { font-weight: 500; color: var(--fg); }
+    .roll-jobs-racket { color: var(--fg-muted); }
+    .roll-jobs-date { font-family: var(--font-mono); color: var(--fg-muted); text-align: right; }
+    .roll-jobs-income { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--court-700); font-weight: 600; text-align: right; }
+
+    /* ── state badge ─────────────────────────────────── */
+    .reel-state-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: var(--r-sm);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .reel-state-badge.new     { background: var(--status-queued-bg); color: var(--status-queued-fg); }
+    .reel-state-badge.active  { background: var(--status-progress-bg); color: var(--status-progress-fg); }
+    .reel-state-badge.used_up { background: var(--surface-tinted); color: var(--fg-muted); border: 1px solid var(--border); }
+
+    /* ── state select ────────────────────────────────── */
+    .reel-state-select {
+      font-size: var(--text-xs);
+      font-family: var(--font-body);
+      padding: 3px 6px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      background: var(--surface);
+      color: var(--fg-muted);
+      cursor: pointer;
+    }
+
+    /* ── efficiency section ──────────────────────────── */
+    .roll-efficiency {
+      padding: var(--sp-4) var(--sp-6);
+      border-top: 1px solid var(--border);
+    }
+    .eff-header {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--fg-muted);
+      font-weight: 600;
+      margin-bottom: var(--sp-3);
+    }
+    .eff-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--sp-4);
+      margin-bottom: var(--sp-3);
+    }
+    .eff-col-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--fg-muted);
+      font-weight: 500;
+      margin-bottom: var(--sp-1);
+    }
+    .eff-col-jobs {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      font-size: var(--text-base);
+      color: var(--fg);
+    }
+    .eff-col-income {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: var(--text-xs);
+      color: var(--fg-muted);
+      margin-top: 2px;
+    }
+    .eff-score {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-3);
+    }
+    .eff-bar-wrap {
+      flex: 1;
+      height: 4px;
+      background: var(--clay-200);
+      border-radius: var(--r-full);
+      overflow: hidden;
+    }
+    .eff-bar-fill {
+      height: 100%;
+      border-radius: var(--r-full);
+      background: var(--accent);
+    }
+    .eff-bar-fill.low  { background: var(--status-overdue-fg); }
+    .eff-bar-fill.mid  { background: var(--status-pending); }
+    .eff-bar-fill.high { background: var(--court-500); }
+    .eff-pct {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      font-weight: 700;
+      white-space: nowrap;
+      min-width: 36px;
+      text-align: right;
+    }
+    .eff-waste {
+      font-size: var(--text-xs);
+      color: var(--status-overdue-fg);
+      margin-top: var(--sp-2);
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+      </div>
+      <span class="sidebar-brand-name">StringPro</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="customers.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Customers</span>
+      </a>
+      <a href="strings.html" class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+        <span>Strings</span>
+      </a>
+      <a href="payments.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        <span>Payments</span>
+      </a>
+      <a href="settings.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header" data-od-id="page-header">
+      <div class="page-header-left">
+        <span class="page-eyebrow" id="header-eyebrow">3 active reels</span>
+        <h1 class="page-title">String Inventory</h1>
+      </div>
+      <button class="btn btn-primary" onclick="openAddRoll()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Reel
+      </button>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Summary -->
+      <div class="summary-cards" data-od-id="roll-summary" style="grid-template-columns:repeat(4,1fr);" id="roll-summary">
+        <!-- rendered by renderSummary() -->
+      </div>
+
+      <!-- Filter tabs -->
+      <div class="filter-tabs" data-od-id="roll-filter">
+        <button class="filter-tab active" onclick="setFilter('active', this)">Active <span class="tab-count" id="tab-count-active">2</span></button>
+        <button class="filter-tab" onclick="setFilter('new', this)">New <span class="tab-count" id="tab-count-new">1</span></button>
+        <button class="filter-tab" onclick="setFilter('used_up', this)">Used up <span class="tab-count" id="tab-count-used">1</span></button>
+        <button class="filter-tab" onclick="setFilter('all', this)">All <span class="tab-count" id="tab-count-all">4</span></button>
+      </div>
+
+      <!-- Roll grid -->
+      <div class="roll-grid" data-od-id="roll-grid" id="roll-grid">
+        <!-- rendered by renderRolls() -->
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Add Reel modal -->
+<div class="modal-overlay" id="add-roll-modal" onclick="if(event.target===this)closeAddRoll()">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <span class="modal-title">Add Reel</span>
+      <button class="modal-close" onclick="closeAddRoll()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div style="display:grid;gap:var(--sp-4);">
+      <div class="form-grid form-grid-2">
+        <div class="field">
+          <label for="ar-brand">Brand</label>
+          <input id="ar-brand" type="text" class="input" placeholder="Babolat, Luxilon…" />
+        </div>
+        <div class="field">
+          <label for="ar-model">Model</label>
+          <input id="ar-model" type="text" class="input" placeholder="RPM Blast" />
+        </div>
+      </div>
+      <div class="form-grid form-grid-2">
+        <div class="field">
+          <label for="ar-material">Material</label>
+          <select id="ar-material" class="select">
+            <option>Polyester</option>
+            <option>Natural gut</option>
+            <option>Multifilament</option>
+            <option>Synthetic gut</option>
+            <option>Hybrid</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="ar-gauge">Gauge (mm)</label>
+          <input id="ar-gauge" type="text" class="input input-mono" placeholder="1.25" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="ar-length">Reel length (m)</label>
+        <input id="ar-length" type="number" class="input input-mono" placeholder="200" min="1" step="1" />
+        <div class="field-hint">Common reel sizes: 100 m or 200 m.</div>
+      </div>
+      <div class="form-grid form-grid-2">
+        <div class="field">
+          <label for="ar-cost">Reel cost (€)</label>
+          <input id="ar-cost" type="number" class="input input-mono" placeholder="32.00" min="0" step="0.50" />
+          <div class="field-hint">What you paid for this reel.</div>
+        </div>
+        <div class="field">
+          <label for="ar-customer-price">Customer price / job (€)</label>
+          <input id="ar-customer-price" type="number" class="input input-mono" value="7.50" min="0" step="0.50" />
+          <div class="field-hint">String fee charged per stringing.</div>
+        </div>
+      </div>
+      <div class="form-grid form-grid-2">
+        <div class="field">
+          <label for="ar-mpj">Meters / stringing (m)</label>
+          <input id="ar-mpj" type="number" class="input input-mono" value="11" min="1" step="1" />
+          <div class="field-hint">Typical: 11 m for standard head.</div>
+        </div>
+        <div class="field">
+          <label for="ar-date">Purchase date</label>
+          <input id="ar-date" type="date" class="input" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAddRoll()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAddRoll()">Add Reel</button>
+    </div>
+  </div>
+</div>
+
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <a href="dashboard.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="customers.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Customers
+    </a>
+    <a href="jobs-new.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Job
+    </a>
+    <a href="payments.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/></svg>
+      Payments
+    </a>
+    <a href="settings.html" class="mobile-nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg>
+      Settings
+    </a>
+  </div>
+</nav>
+
+<script>
+// ── Reel data ──────────────────────────────────────────
+// status: null = auto-derive (new/active); 'used_up' = manually finished
+const ROLLS = [
+  {
+    id: 'rpm-1', brand: 'Babolat', model: 'RPM Blast',
+    material: 'Polyester', gauge: '1.25 mm',
+    totalMeters: 200, metersPerJob: 11,
+    rollCost: 32.00, customerPrice: 7.50,
+    purchaseDate: '2026-04-15', status: null,
+    jobs: [
+      { id:'001', customer:'Marc Dubois',     racket:'Wilson Pro Staff 97',  date:'2026-06-26' },
+      { id:'003', customer:'Thomas Weber',    racket:'Yonex Vcore 95',       date:'2026-06-18' },
+      { id:'002', customer:'Laura Chen',      racket:'Head Speed MP',        date:'2026-06-15' },
+      { id:'005', customer:'Marc Dubois',     racket:'Wilson Ultra 100',     date:'2026-06-10' },
+      { id:'J07', customer:'Sarah Kowalski',  racket:'Babolat Pure Drive',   date:'2026-06-05' },
+      { id:'J06', customer:'Thomas Weber',    racket:'Yonex Vcore 95',       date:'2026-05-28' },
+      { id:'J04', customer:'Laura Chen',      racket:'Head Speed MP',        date:'2026-05-20' },
+      { id:'J03', customer:'Marc Dubois',     racket:'Wilson Pro Staff 97',  date:'2026-05-12' }
+    ]
+  },
+  {
+    id: 'alu-1', brand: 'Luxilon', model: 'Alu Power',
+    material: 'Polyester', gauge: '1.30 mm',
+    totalMeters: 200, metersPerJob: 11,
+    rollCost: 45.00, customerPrice: 7.50,
+    purchaseDate: '2026-05-20', status: null,
+    jobs: [
+      { id:'J10', customer:'Sarah Kowalski',  racket:'Babolat Pure Aero',    date:'2026-06-22' },
+      { id:'J09', customer:'Thomas Weber',    racket:'Yonex Vcore 95',       date:'2026-06-14' },
+      { id:'J08', customer:'Marc Dubois',     racket:'Wilson Pro Staff 97',  date:'2026-06-02' },
+      { id:'J05', customer:'Laura Chen',      racket:'Head Speed MP',        date:'2026-05-25' }
+    ]
+  },
+  {
+    id: 'xone-1', brand: 'Tecnifibre', model: 'X-One Biphase',
+    material: 'Multifilament', gauge: '1.24 mm',
+    totalMeters: 100, metersPerJob: 11,
+    rollCost: 28.00, customerPrice: 7.50,
+    purchaseDate: '2026-03-10', status: 'used_up',
+    jobs: [
+      { id:'J12', customer:'Laura Chen',      racket:'Head Speed MP',        date:'2026-06-20' },
+      { id:'J11', customer:'Sarah Kowalski',  racket:'Babolat Pure Drive',   date:'2026-06-08' },
+      { id:'J02', customer:'Marc Dubois',     racket:'Wilson Ultra 100',     date:'2026-04-28' },
+      { id:'J01', customer:'Laura Chen',      racket:'Head Speed MP',        date:'2026-04-02' }
+    ]
+  },
+  {
+    id: 'nxt-1', brand: 'Wilson', model: 'NXT',
+    material: 'Multifilament', gauge: '1.30 mm',
+    totalMeters: 100, metersPerJob: 11,
+    rollCost: 22.00, customerPrice: 7.50,
+    purchaseDate: '2026-06-01', status: null,
+    jobs: []
+  }
+];
+
+// ── Helpers ───────────────────────────────────────────
+function fmt(n) { return '€ ' + Math.abs(n).toFixed(2); }
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// Derived state: 'used_up' is set manually; 'new' and 'active' are derived
+function reelStatus(r) {
+  if (r.status === 'used_up') return 'used_up';
+  if (r.jobs.length === 0)   return 'new';
+  return 'active';
+}
+const STATUS_LABEL = { new: 'New', active: 'Active', used_up: 'Used up' };
+
+function rollMetrics(r) {
+  const st          = reelStatus(r);
+  const jobsCount   = r.jobs.length;
+  const metersUsed  = jobsCount * r.metersPerJob;
+  const metersLeft  = Math.max(0, r.totalMeters - metersUsed);
+  const jobsLeft    = st === 'used_up' ? 0 : Math.floor(metersLeft / r.metersPerJob);
+  const pct         = Math.min(100, (metersUsed / r.totalMeters) * 100);
+  const income      = jobsCount * r.customerPrice;
+  const net         = income - r.rollCost;
+  const paidOff     = net >= -0.005;
+  const jobsToGo    = paidOff ? 0 : Math.ceil((r.rollCost - income) / r.customerPrice);
+
+  const predictedJobs   = Math.floor(r.totalMeters / r.metersPerJob);
+  const potentialIncome = predictedJobs * r.customerPrice;
+  const efficiency      = predictedJobs > 0 ? Math.round(jobsCount / predictedJobs * 100) : 0;
+  const missedJobs      = Math.max(0, predictedJobs - jobsCount);
+  const missedIncome    = missedJobs * r.customerPrice;
+
+  let meterCls = '';
+  if (st === 'used_up')   meterCls = 'done';
+  else if (jobsLeft <= 1) meterCls = 'critical';
+  else if (jobsLeft <= 4) meterCls = 'warn';
+
+  const effCls = efficiency >= 75 ? 'high' : efficiency >= 50 ? 'mid' : 'low';
+
+  return { st, jobsCount, metersUsed, metersLeft, jobsLeft, pct, income, net, paidOff, jobsToGo, meterCls,
+           predictedJobs, potentialIncome, efficiency, missedJobs, missedIncome, effCls };
+}
+
+// ── Render summary ────────────────────────────────────
+function renderSummary() {
+  const cnt         = s => ROLLS.filter(r => reelStatus(r) === s).length;
+  const active      = ROLLS.filter(r => reelStatus(r) === 'active');
+  const usedUp      = ROLLS.filter(r => reelStatus(r) === 'used_up');
+  const paidOff     = active.filter(r => rollMetrics(r).paidOff).length;
+  const totalIncome = ROLLS.reduce((s, r) => s + r.jobs.length * r.customerPrice, 0);
+  const totalCost   = ROLLS.reduce((s, r) => s + r.rollCost, 0);
+  const metersLeft  = active.reduce((s, r) => s + Math.max(0, r.totalMeters - r.jobs.length * r.metersPerJob), 0);
+  const avgEff      = usedUp.length > 0
+    ? Math.round(usedUp.reduce((s, r) => s + rollMetrics(r).efficiency, 0) / usedUp.length)
+    : null;
+
+  const sub1Parts = [];
+  if (cnt('active'))  sub1Parts.push(`${cnt('active')} active`);
+  if (cnt('new'))     sub1Parts.push(`${cnt('new')} new`);
+  if (cnt('used_up')) sub1Parts.push(`${cnt('used_up')} used up`);
+
+  document.getElementById('roll-summary').innerHTML = `
+    <div class="summary-card">
+      <div class="summary-card-label">Reels</div>
+      <div class="summary-card-value">${ROLLS.length}</div>
+      <div class="summary-card-sub">${sub1Parts.join(' · ')}${active.length ? ` · ~${metersLeft}m left` : ''}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Paid off</div>
+      <div class="summary-card-value">${paidOff} / ${active.length}</div>
+      <div class="summary-card-sub">${active.length - paidOff > 0 ? `${active.length - paidOff} reel${active.length - paidOff !== 1 ? 's' : ''} still recovering cost` : active.length > 0 ? 'All active reels profitable' : 'No active reels'}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">String fees collected</div>
+      <div class="summary-card-value paid">${fmt(totalIncome)}</div>
+      <div class="summary-card-sub">${ROLLS.reduce((s,r)=>s+r.jobs.length,0)} jobs · ${fmt(totalCost)} invested</div>
+    </div>
+    <div class="summary-card ${avgEff !== null && avgEff < 65 ? 'warn' : ''}">
+      <div class="summary-card-label">Avg string efficiency</div>
+      <div class="summary-card-value ${avgEff !== null ? (avgEff < 65 ? 'warn' : 'paid') : ''}">${avgEff !== null ? avgEff + '%' : '—'}</div>
+      <div class="summary-card-sub">${avgEff !== null ? `across ${usedUp.length} used-up reel${usedUp.length !== 1 ? 's' : ''}` : 'No used-up reels yet'}</div>
+    </div>`;
+}
+
+// ── Render reel cards ─────────────────────────────────
+let currentFilter = 'active';
+
+function renderRolls() {
+  const cnt = s => ROLLS.filter(r => reelStatus(r) === s).length;
+  document.getElementById('header-eyebrow').textContent =
+    `${cnt('active')} active · ${cnt('new')} new · ${cnt('used_up')} used up`;
+  document.getElementById('tab-count-active').textContent = cnt('active');
+  document.getElementById('tab-count-new').textContent    = cnt('new');
+  document.getElementById('tab-count-used').textContent   = cnt('used_up');
+  document.getElementById('tab-count-all').textContent    = ROLLS.length;
+
+  const rolls = currentFilter === 'all' ? ROLLS : ROLLS.filter(r => reelStatus(r) === currentFilter);
+
+  document.getElementById('roll-grid').innerHTML = rolls.map(r => {
+    const m  = rollMetrics(r);
+    const st = m.st;
+
+    const meterRight = st === 'used_up'
+      ? `<span class="roll-meter-remaining">Reel finished</span>`
+      : st === 'new'
+      ? `<span class="roll-meter-remaining">~${m.predictedJobs} jobs predicted</span>`
+      : `<span class="roll-meter-remaining">~${m.metersLeft} m left · ~${m.jobsLeft} more job${m.jobsLeft!==1?'s':''}</span>`;
+
+    const meterLeft = st === 'new'
+      ? `<span>No jobs yet</span>`
+      : `<span>${m.metersUsed} m used · ${m.jobsCount} job${m.jobsCount!==1?'s':''}</span>`;
+
+    const effSection = st === 'new' ? `
+      <div class="roll-efficiency">
+        <div class="eff-header">Predicted yield</div>
+        <div class="eff-cols" style="grid-template-columns:1fr;">
+          <div>
+            <div class="eff-col-label">Jobs</div>
+            <div class="eff-col-jobs">${m.predictedJobs}</div>
+            <div class="eff-col-income">${fmt(m.potentialIncome)} potential income</div>
+          </div>
+        </div>
+      </div>` : st === 'used_up' ? `
+      <div class="roll-efficiency">
+        <div class="eff-header">String efficiency — final</div>
+        <div class="eff-cols">
+          <div>
+            <div class="eff-col-label">Predicted</div>
+            <div class="eff-col-jobs">${m.predictedJobs} jobs</div>
+            <div class="eff-col-income">${fmt(m.potentialIncome)}</div>
+          </div>
+          <div>
+            <div class="eff-col-label">Actual</div>
+            <div class="eff-col-jobs">${m.jobsCount} jobs</div>
+            <div class="eff-col-income">${fmt(m.income)}</div>
+          </div>
+        </div>
+        <div class="eff-score">
+          <div class="eff-bar-wrap"><div class="eff-bar-fill ${m.effCls}" style="width:${m.efficiency}%"></div></div>
+          <span class="eff-pct">${m.efficiency}%</span>
+        </div>
+        ${m.missedJobs > 0 ? `<div class="eff-waste">${m.missedJobs} job${m.missedJobs!==1?'s':''} worth of string unused · ${fmt(m.missedIncome)} unrealised</div>` : `<div style="font-size:var(--text-xs);color:var(--status-done-fg);margin-top:var(--sp-2);">Full reel utilised</div>`}
+      </div>` : `
+      <div class="roll-efficiency">
+        <div class="eff-header">Reel progress</div>
+        <div class="eff-cols">
+          <div>
+            <div class="eff-col-label">Predicted yield</div>
+            <div class="eff-col-jobs">${m.predictedJobs} jobs</div>
+            <div class="eff-col-income">${fmt(m.potentialIncome)}</div>
+          </div>
+          <div>
+            <div class="eff-col-label">So far</div>
+            <div class="eff-col-jobs">${m.jobsCount} jobs</div>
+            <div class="eff-col-income">${fmt(m.income)}</div>
+          </div>
+        </div>
+        <div class="eff-score">
+          <div class="eff-bar-wrap"><div class="eff-bar-fill ${m.effCls}" style="width:${m.efficiency}%"></div></div>
+          <span class="eff-pct">${m.efficiency}% used</span>
+        </div>
+      </div>`;
+
+    return `
+      <div class="roll-card${st === 'used_up' ? ' inactive' : ''}" id="rc-${r.id}">
+
+        <div class="roll-header">
+          <div>
+            <div class="roll-name">${r.brand} · ${r.model}</div>
+            <div class="roll-pills">
+              <span class="roll-pill">${r.material}</span>
+              <span class="roll-pill">${r.gauge}</span>
+              <span class="roll-pill">${r.totalMeters} m reel</span>
+              <span class="roll-pill price">${fmt(r.customerPrice)}/job</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:var(--sp-2);flex-shrink:0;">
+            <span class="reel-state-badge ${st}">${STATUS_LABEL[st]}</span>
+            <select class="reel-state-select" onchange="setStatus('${r.id}', this.value)">
+              <option value="new"${st==='new'?' selected':''}>New</option>
+              <option value="active"${st==='active'?' selected':''}>Active</option>
+              <option value="used_up"${st==='used_up'?' selected':''}>Used up</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="roll-meter">
+          <div class="roll-meter-bar-wrap">
+            <div class="roll-meter-fill ${m.meterCls}" style="width:${m.pct.toFixed(1)}%"></div>
+          </div>
+          <div class="roll-meter-labels">
+            ${meterLeft}
+            ${meterRight}
+          </div>
+        </div>
+
+        ${effSection}
+
+        <div class="roll-financials">
+          <div class="roll-fin-row">
+            <span class="roll-fin-label">Reel cost</span>
+            <span class="roll-fin-val">${fmt(r.rollCost)}</span>
+          </div>
+          <div class="roll-fin-row">
+            <span class="roll-fin-label">String fees earned</span>
+            <span class="roll-fin-val">${fmt(m.income)}</span>
+          </div>
+          <div class="roll-fin-divider"></div>
+          <div class="roll-fin-net ${m.paidOff ? 'positive' : 'negative'}">
+            <span>Net return</span>
+            <div style="text-align:right;">
+              <span class="roll-fin-net-num">${m.paidOff ? '+' : '−'}${fmt(m.net)}</span>
+              <div style="font-size:10px;font-weight:400;opacity:0.85;margin-top:2px;">
+                ${m.paidOff
+                  ? (st === 'used_up' ? 'Paid off · reel finished' : 'Paid off · every next job is pure profit')
+                  : `${m.jobsToGo} more job${m.jobsToGo!==1?'s':''} to break even (at ${fmt(r.customerPrice)}/job)`
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="roll-footer">
+          <span class="roll-purchase-date">Purchased ${fmtDate(r.purchaseDate)}</span>
+          <button class="roll-jobs-btn" onclick="toggleJobs('${r.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+            ${m.jobsCount} job${m.jobsCount!==1?'s':''}
+            <svg id="chv-${r.id}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" style="transition:transform 200ms ease-out;"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+
+        <div class="roll-jobs-list" id="jobs-${r.id}" style="display:none;">
+          ${r.jobs.length === 0
+            ? `<div style="padding:var(--sp-4) var(--sp-6);font-size:var(--text-xs);color:var(--fg-muted);">No jobs yet</div>`
+            : r.jobs.map(j => `
+              <div class="roll-jobs-item">
+                <div style="display:flex;align-items:center;gap:var(--sp-3);">
+                  <span class="roll-jobs-id">#${j.id}</span>
+                  <div>
+                    <div class="roll-jobs-customer">${j.customer}</div>
+                    <div class="roll-jobs-racket">${j.racket}</div>
+                  </div>
+                </div>
+                <div>
+                  <div class="roll-jobs-date">${fmtDate(j.date)}</div>
+                  <div class="roll-jobs-income">+${fmt(r.customerPrice)}</div>
+                </div>
+              </div>`).join('')}
+        </div>
+
+      </div>`;
+  }).join('');
+}
+
+// ── Interactions ──────────────────────────────────────
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderRolls();
+}
+
+function setStatus(id, val) {
+  const r = ROLLS.find(x => x.id === id);
+  if (!r) return;
+  r.status = val === 'used_up' ? 'used_up' : null;
+  renderSummary();
+  renderRolls();
+}
+
+function toggleJobs(id) {
+  const el  = document.getElementById('jobs-' + id);
+  const chv = document.getElementById('chv-' + id);
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  chv.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+// ── Add Roll modal ────────────────────────────────────
+function openAddRoll() {
+  document.getElementById('ar-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('add-roll-modal').classList.add('open');
+}
+function closeAddRoll() { document.getElementById('add-roll-modal').classList.remove('open'); }
+
+function saveAddRoll() {
+  const brand  = document.getElementById('ar-brand').value.trim();
+  const model  = document.getElementById('ar-model').value.trim();
+  if (!brand || !model) { alert('Brand and model are required.'); return; }
+
+  const totalMeters    = parseInt(document.getElementById('ar-length').value) || 200;
+  const rollCost       = parseFloat(document.getElementById('ar-cost').value) || 0;
+  const customerPrice  = parseFloat(document.getElementById('ar-customer-price').value) || 7.50;
+  const metersPerJob   = parseInt(document.getElementById('ar-mpj').value) || 11;
+  const purchaseDate   = document.getElementById('ar-date').value;
+  const material       = document.getElementById('ar-material').value;
+  const gauge          = (document.getElementById('ar-gauge').value.trim() || '—') + (document.getElementById('ar-gauge').value.includes('mm') ? '' : ' mm');
+
+  const id = brand.toLowerCase().slice(0,3) + '-' + (Date.now() % 10000);
+
+  ROLLS.unshift({ id, brand, model, material, gauge, totalMeters, metersPerJob, rollCost, customerPrice, purchaseDate, status: null, jobs: [] });
+
+  renderSummary();
+  renderRolls();
+  closeAddRoll();
+}
+
+// ── Init ──────────────────────────────────────────────
+renderSummary();
+renderRolls();
+</script>
+</body>
+</html>

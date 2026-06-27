@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Job #001 — StringPro</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    .detail-layout { display: grid; grid-template-columns: 1fr 300px; gap: var(--sp-6); align-items: start; }
+    @media (max-width: 900px) { .detail-layout { grid-template-columns: 1fr; } }
+
+    .pay-modal-grid { display: grid; gap: var(--sp-4); }
+
+    /* due/owed summary block inside modal */
+    .pay-due-block {
+      background: var(--surface-tinted);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: var(--sp-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-2);
+    }
+    .pay-due-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: var(--text-sm);
+    }
+    .pay-due-row.total {
+      padding-top: var(--sp-2);
+      margin-top: var(--sp-1);
+      border-top: 1px solid var(--border);
+      font-weight: 600;
+    }
+    .pay-due-row.owed {
+      color: var(--status-overdue-fg);
+      font-weight: 600;
+    }
+    .pay-due-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* remaining callout on payment card */
+    .pay-remaining-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--sp-3) var(--sp-4);
+      background: var(--status-overdue-bg);
+      border: 1px solid var(--status-overdue-border);
+      border-radius: var(--r-md);
+      margin-top: var(--sp-2);
+    }
+    .pay-tip-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--sp-3) var(--sp-4);
+      background: var(--status-done-bg);
+      border-radius: var(--r-md);
+      margin-top: var(--sp-2);
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+      </div>
+      <span class="sidebar-brand-name">StringPro</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="customers.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Customers</span>
+      </a>
+      <a href="strings.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+        <span>Strings</span>
+      </a>
+      <a href="payments.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        <span>Payments</span>
+      </a>
+      <a href="settings.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header" data-od-id="page-header">
+      <div class="page-header-left">
+        <div class="breadcrumb">
+          <a href="dashboard.html">Dashboard</a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span>Job #001</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--sp-4);">
+          <h1 class="page-title">Marc Dubois</h1>
+          <span class="badge badge-queued" id="stage-badge" style="font-size:var(--text-sm);">Queued</span>
+        </div>
+        <div style="font-size:var(--text-sm);color:var(--fg-muted);margin-top:var(--sp-1);">Wilson Pro Staff 97 · Created 26 Jun 2026</div>
+      </div>
+      <div style="display:flex;gap:var(--sp-3);">
+        <button class="btn btn-ghost">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          Edit
+        </button>
+        <button class="btn btn-danger btn-sm" style="min-height:40px;">Delete</button>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <!-- Stage progress -->
+      <div class="card" data-od-id="stage-bar" style="margin-bottom:var(--sp-6);padding:var(--sp-6) var(--sp-8);">
+        <div style="font-size:var(--text-xs);font-weight:500;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-mono);margin-bottom:var(--sp-5);">Job Progress</div>
+        <div class="stage-bar" id="stage-bar">
+          <div class="stage-step done" data-stage="queued">
+            <div class="stage-dot">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="stage-label">Queued</div>
+          </div>
+          <div class="stage-step active" data-stage="progress">
+            <div class="stage-dot"></div>
+            <div class="stage-label">In Progress</div>
+          </div>
+          <div class="stage-step" data-stage="ready">
+            <div class="stage-dot"></div>
+            <div class="stage-label">Ready to Pick Up</div>
+          </div>
+          <div class="stage-step" data-stage="done">
+            <div class="stage-dot"></div>
+            <div class="stage-label">Done</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-4);">
+          <button class="btn btn-secondary btn-sm" onclick="prevStage()">← Back</button>
+          <button class="btn btn-primary btn-sm" id="advance-btn" onclick="nextStage()">Advance to In Progress →</button>
+        </div>
+      </div>
+
+      <div class="detail-layout">
+        <!-- Left column -->
+        <div>
+          <div class="detail-section" data-od-id="stringing-details">
+            <div class="detail-section-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+              <span class="detail-section-title">Stringing Details</span>
+            </div>
+            <div class="detail-section-body">
+              <div class="detail-row">
+                <span class="detail-key">String source</span>
+                <span class="detail-val">My strings</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-key">String</span>
+                <span class="detail-val">Babolat RPM Blast 1.25 mm (Polyester)</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-key">Mains tension</span>
+                <span class="detail-val mono">24 kg (52.9 lb)</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-key">Crosses tension</span>
+                <span class="detail-val mono">22 kg (48.5 lb)</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-key">Deadline</span>
+                <span class="detail-val">30 Jun 2026</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section" data-od-id="notes-section">
+            <div class="detail-section-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"/><polyline points="14 3 14 8 19 8"/></svg>
+              <span class="detail-section-title">Notes</span>
+            </div>
+            <div class="detail-section-body">
+              <p style="font-size:var(--text-sm);color:var(--fg);line-height:1.6;">Customer prefers looser crosses. Last job was 24/21 and he liked it. Racket frame slightly worn at 3 o'clock.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column -->
+        <div>
+          <div class="detail-section" data-od-id="payment-section" style="margin-bottom:0;">
+            <div class="detail-section-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+              <span class="detail-section-title">Payment</span>
+            </div>
+            <div class="detail-section-body" id="payment-body">
+              <!-- rendered by renderPaymentSection() -->
+            </div>
+          </div>
+
+          <div style="margin-top:var(--sp-4);" class="card card-sm" data-od-id="job-meta">
+            <div class="detail-row" style="border-top:none;padding-top:0;">
+              <span class="detail-key">Job</span>
+              <span class="detail-val mono">#001</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-key">Customer</span>
+              <span class="detail-val"><a href="customer-detail.html" style="color:var(--accent);">Marc Dubois</a></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-key">Racket</span>
+              <span class="detail-val">Wilson Pro Staff 97</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-key">Created</span>
+              <span class="detail-val mono">26 Jun 2026</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Pay modal -->
+<div class="modal-overlay" id="pay-modal" onclick="if(event.target===this)closePayModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Record Payment</span>
+      <button class="modal-close" onclick="closePayModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="pay-modal-grid">
+      <!-- Amount summary -->
+      <div class="pay-due-block" id="modal-due-block">
+        <!-- filled by openPayModal() -->
+      </div>
+
+      <!-- Amount received -->
+      <div class="field">
+        <label for="pay-amount">Amount received (€)</label>
+        <input id="pay-amount" type="number" class="input input-mono" min="0" step="0.50" placeholder="0.00" oninput="calcPayResult()" />
+      </div>
+
+      <!-- Live result preview -->
+      <div class="pay-result empty" id="pay-result">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Enter the amount received above
+      </div>
+
+      <!-- Method -->
+      <div class="field">
+        <label for="pay-method">Payment method</label>
+        <select id="pay-method" class="select">
+          <option value="Cash">Cash</option>
+          <option value="Bank transfer">Bank transfer</option>
+          <option value="PayPal">PayPal</option>
+        </select>
+      </div>
+
+      <!-- Date -->
+      <div class="field">
+        <label for="pay-date">Date</label>
+        <input id="pay-date" type="date" class="input" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closePayModal()">Cancel</button>
+      <button class="btn btn-paid" id="confirm-pay-btn" onclick="confirmPay()" disabled>Save Payment</button>
+    </div>
+  </div>
+</div>
+
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <a href="dashboard.html" class="mobile-nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="customers.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Customers
+    </a>
+    <a href="jobs-new.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Job
+    </a>
+    <a href="payments.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+      Payments
+    </a>
+    <a href="settings.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg>
+      Settings
+    </a>
+  </div>
+</nav>
+
+<script>
+// ── Job data ─────────────────────────────────────────
+const JOB = { serviceFee: 10.00, stringFee: 7.50, totalDue: 17.50 };
+let PAYMENTS = []; // { amount, method, date }
+
+function fmt(n) { return '€ ' + n.toFixed(2); }
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function totalPaid() { return PAYMENTS.reduce((s, p) => s + p.amount, 0); }
+function remaining() { return Math.max(0, JOB.totalDue - totalPaid()); }
+function tipAmount() { return Math.max(0, totalPaid() - JOB.totalDue); }
+
+// ── Payment section renderer ──────────────────────────
+function renderPaymentSection() {
+  const paid = totalPaid();
+  const rem  = remaining();
+  const tip  = tipAmount();
+  const body = document.getElementById('payment-body');
+
+  // Fixed fee rows (always shown)
+  let html = `
+    <div class="detail-row">
+      <span class="detail-key">Service fee</span>
+      <span class="detail-val mono">${fmt(JOB.serviceFee)}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-key">String fee</span>
+      <span class="detail-val mono">${fmt(JOB.stringFee)}</span>
+    </div>
+    <div class="detail-row" style="border-top:2px solid var(--border-strong);padding-top:var(--sp-3);">
+      <span class="detail-key" style="font-weight:600;">Total due</span>
+      <span class="detail-val large">${fmt(JOB.totalDue)}</span>
+    </div>`;
+
+  // Payment history
+  if (PAYMENTS.length > 0) {
+    html += `<div class="pay-history">`;
+    PAYMENTS.forEach((p, i) => {
+      html += `
+        <div class="pay-history-item">
+          <span class="pay-history-amount">${fmt(p.amount)}</span>
+          <span class="pay-history-meta">${p.method} · ${fmtDate(p.date)}</span>
+        </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Status row
+  html += `<div class="detail-row" style="margin-top:var(--sp-3);">
+    <span class="detail-key">Payment status</span>
+    <span id="pay-status-badge">`;
+
+  if (paid === 0) {
+    html += `<span class="badge badge-unpaid">Unpaid</span>`;
+  } else if (rem > 0.005) {
+    html += `<span class="badge badge-partial">Partial</span>`;
+  } else if (tip > 0.005) {
+    html += `<span class="badge badge-paid">Paid</span>`;
+  } else {
+    html += `<span class="badge badge-paid">Paid in full</span>`;
+  }
+  html += `</span></div>`;
+
+  // Remaining balance callout
+  if (rem > 0.005) {
+    html += `
+      <div class="pay-remaining-row">
+        <span style="font-size:var(--text-sm);font-weight:500;color:var(--status-overdue-fg);">Still outstanding</span>
+        <span style="font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums;color:var(--status-overdue-fg);">${fmt(rem)}</span>
+      </div>`;
+  }
+
+  // Tip callout
+  if (tip > 0.005) {
+    html += `
+      <div class="pay-tip-row">
+        <span style="font-size:var(--text-sm);font-weight:500;color:var(--status-done-fg);">Tip</span>
+        <span style="font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums;color:var(--status-done-fg);">${fmt(tip)}</span>
+      </div>`;
+  }
+
+  // CTA button
+  html += `<div style="margin-top:var(--sp-5);">`;
+  if (paid === 0) {
+    html += `<button class="btn btn-paid" style="width:100%;" onclick="openPayModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Mark Paid
+    </button>`;
+  } else if (rem > 0.005) {
+    html += `<button class="btn btn-paid" style="width:100%;" onclick="openPayModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Add Payment
+    </button>`;
+  }
+  html += `</div>`;
+
+  body.innerHTML = html;
+}
+
+// ── Pay modal ─────────────────────────────────────────
+function openPayModal() {
+  const rem = remaining();
+  const paid = totalPaid();
+
+  // Build the due block
+  let block = `
+    <div class="pay-due-row">
+      <span style="color:var(--fg-muted);">Total due</span>
+      <span class="pay-due-num">${fmt(JOB.totalDue)}</span>
+    </div>`;
+  if (paid > 0) {
+    block += `
+      <div class="pay-due-row">
+        <span style="color:var(--fg-muted);">Already paid</span>
+        <span class="pay-due-num">${fmt(paid)}</span>
+      </div>
+      <div class="pay-due-row total owed">
+        <span>Still owed</span>
+        <span class="pay-due-num">${fmt(rem)}</span>
+      </div>`;
+  } else {
+    block += `<div class="pay-due-row total">
+      <span>Amount due</span>
+      <span class="pay-due-num">${fmt(JOB.totalDue)}</span>
+    </div>`;
+  }
+  document.getElementById('modal-due-block').innerHTML = block;
+
+  // Pre-fill amount with what's still owed
+  const amountInput = document.getElementById('pay-amount');
+  amountInput.value = rem.toFixed(2);
+
+  // Default date to today
+  document.getElementById('pay-date').value = new Date().toISOString().split('T')[0];
+
+  // Reset result preview
+  calcPayResult();
+
+  document.getElementById('pay-modal').classList.add('open');
+}
+
+function closePayModal() {
+  document.getElementById('pay-modal').classList.remove('open');
+}
+
+function calcPayResult() {
+  const amtStr = document.getElementById('pay-amount').value;
+  const amt = parseFloat(amtStr);
+  const result = document.getElementById('pay-result');
+  const confirmBtn = document.getElementById('confirm-pay-btn');
+
+  if (!amtStr || isNaN(amt) || amt <= 0) {
+    result.className = 'pay-result empty';
+    result.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Enter the amount received above`;
+    confirmBtn.disabled = true;
+    return;
+  }
+
+  confirmBtn.disabled = false;
+  const newTotal = totalPaid() + amt;
+  const diff = newTotal - JOB.totalDue;
+
+  if (diff > 0.005) {
+    // Tip
+    result.className = 'pay-result tip';
+    result.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg> Paid in full — <strong style="font-family:var(--font-mono);">${fmt(diff)}</strong> tip`;
+  } else if (diff < -0.005) {
+    // Short
+    const stillOwed = Math.abs(diff);
+    result.className = 'pay-result short';
+    result.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> <strong style="font-family:var(--font-mono);">${fmt(stillOwed)}</strong> still outstanding after this payment`;
+  } else {
+    // Exact
+    result.className = 'pay-result exact';
+    result.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Paid in full`;
+  }
+}
+
+function confirmPay() {
+  const amt = parseFloat(document.getElementById('pay-amount').value);
+  const method = document.getElementById('pay-method').value;
+  const date = document.getElementById('pay-date').value;
+  if (!amt || amt <= 0) return;
+
+  PAYMENTS.push({ amount: amt, method, date });
+  renderPaymentSection();
+  closePayModal();
+}
+
+// ── Job stage ─────────────────────────────────────────
+const STAGES = ['queued', 'progress', 'ready', 'done'];
+const ADVANCE_LABELS = {
+  queued:   'Advance to In Progress →',
+  progress: 'Advance to Ready to Pick Up →',
+  ready:    'Advance to Done →',
+  done:     null
+};
+const BADGE_CLASSES = {
+  queued: 'badge-queued',
+  progress: 'badge-progress',
+  ready: 'badge-ready',
+  done: 'badge-done'
+};
+const STAGE_NAMES = {
+  queued: 'Queued', progress: 'In Progress', ready: 'Ready to Pick Up', done: 'Done'
+};
+let currentStage = 'queued';
+
+function renderStages() {
+  const idx = STAGES.indexOf(currentStage);
+  document.querySelectorAll('.stage-step').forEach((el, i) => {
+    el.classList.remove('done', 'active');
+    if (i < idx) el.classList.add('done');
+    else if (i === idx) el.classList.add('active');
+    const dot = el.querySelector('.stage-dot');
+    dot.innerHTML = i < idx
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
+      : '';
+  });
+  const btn = document.getElementById('advance-btn');
+  const label = ADVANCE_LABELS[currentStage];
+  if (label) { btn.textContent = label; btn.disabled = false; }
+  else { btn.textContent = 'Job Complete'; btn.disabled = true; }
+
+  const badge = document.getElementById('stage-badge');
+  badge.className = 'badge ' + BADGE_CLASSES[currentStage];
+  badge.textContent = STAGE_NAMES[currentStage];
+}
+
+function nextStage() {
+  const idx = STAGES.indexOf(currentStage);
+  if (idx < STAGES.length - 1) { currentStage = STAGES[idx + 1]; renderStages(); }
+}
+function prevStage() {
+  const idx = STAGES.indexOf(currentStage);
+  if (idx > 0) { currentStage = STAGES[idx - 1]; renderStages(); }
+}
+
+renderStages();
+renderPaymentSection();
+</script>
+</body>
+</html>

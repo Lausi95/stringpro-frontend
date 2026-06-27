@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Payments — StringPro</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+      </div>
+      <span class="sidebar-brand-name">StringPro</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="customers.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Customers</span>
+      </a>
+      <a href="strings.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+        <span>Strings</span>
+      </a>
+      <a href="payments.html" class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        <span>Payments</span>
+      </a>
+      <a href="settings.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header" data-od-id="page-header">
+      <div class="page-header-left">
+        <span class="page-eyebrow">Jun 2026</span>
+        <h1 class="page-title">Payments</h1>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <!-- Summary -->
+      <div class="summary-cards" data-od-id="payment-summary" style="grid-template-columns:repeat(3,1fr);">
+        <div class="summary-card warn">
+          <div class="summary-card-label">Outstanding</div>
+          <div class="summary-card-value warn">€ 35.00</div>
+          <div class="summary-card-sub">2 unpaid jobs</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Collected this month</div>
+          <div class="summary-card-value paid">€ 37.50</div>
+          <div class="summary-card-sub">3 jobs paid in Jun 2026</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Year to date</div>
+          <div class="summary-card-value">€ 112.50</div>
+          <div class="summary-card-sub">Jan – Jun 2026</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="filter-tabs" data-od-id="payment-tabs">
+        <button class="filter-tab active" onclick="switchTab('unpaid',this)">Unpaid <span class="tab-count">2</span></button>
+        <button class="filter-tab" onclick="switchTab('paid',this)">Paid <span class="tab-count">3</span></button>
+      </div>
+
+      <!-- Unpaid tab -->
+      <div id="tab-unpaid" data-od-id="unpaid-table">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Job</th>
+                <th>Customer</th>
+                <th>Job Status</th>
+                <th>Due Date</th>
+                <th class="num-col">Amount</th>
+                <th class="actions-col">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-due="17.50">
+                <td><span class="cell-mono"><a href="jobs-detail.html" style="color:var(--accent);">#001</a></span></td>
+                <td>
+                  <div class="cell-primary">Marc Dubois</div>
+                  <div class="cell-secondary">Wilson Pro Staff 97</div>
+                </td>
+                <td><span class="badge badge-queued">Queued</span></td>
+                <td><span class="cell-mono">30 Jun 2026</span></td>
+                <td class="num-col"><span style="font-family:var(--font-mono);font-size:var(--text-sm);font-variant-numeric:tabular-nums;">€ 17.50</span></td>
+                <td class="actions-col">
+                  <button class="btn btn-sm btn-paid" onclick="markPaidInline(this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    Mark Paid
+                  </button>
+                </td>
+              </tr>
+              <tr data-due="17.50">
+                <td><span class="cell-mono"><a href="jobs-detail.html" style="color:var(--accent);">#003</a></span></td>
+                <td>
+                  <div class="cell-primary">Thomas Weber</div>
+                  <div class="cell-secondary">Yonex Vcore 95</div>
+                </td>
+                <td><span class="badge badge-ready">Ready</span></td>
+                <td><span class="cell-mono">28 Jun 2026</span></td>
+                <td class="num-col"><span style="font-family:var(--font-mono);font-size:var(--text-sm);font-variant-numeric:tabular-nums;">€ 17.50</span></td>
+                <td class="actions-col">
+                  <button class="btn btn-sm btn-paid" onclick="markPaidInline(this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    Mark Paid
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Paid tab -->
+      <div id="tab-paid" style="display:none;" data-od-id="paid-table">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Job</th>
+                <th>Customer</th>
+                <th>Paid Date</th>
+                <th>Method</th>
+                <th class="num-col">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="cell-mono"><a href="jobs-detail.html" style="color:var(--accent);">#002</a></span></td>
+                <td>
+                  <div class="cell-primary">Laura Chen</div>
+                  <div class="cell-secondary">Head Speed MP</div>
+                </td>
+                <td><span class="cell-mono">25 Jun 2026</span></td>
+                <td><span class="badge badge-paid">Bank transfer</span></td>
+                <td class="num-col"><span style="font-family:var(--font-mono);font-size:var(--text-sm);font-variant-numeric:tabular-nums;">€ 10.00</span></td>
+              </tr>
+              <tr>
+                <td><span class="cell-mono"><a href="jobs-detail.html" style="color:var(--accent);">#004</a></span></td>
+                <td>
+                  <div class="cell-primary">Sarah Kowalski</div>
+                  <div class="cell-secondary">Babolat Pure Drive</div>
+                </td>
+                <td><span class="cell-mono">23 Jun 2026</span></td>
+                <td><span class="badge badge-paid">Cash</span></td>
+                <td class="num-col"><span style="font-family:var(--font-mono);font-size:var(--text-sm);font-variant-numeric:tabular-nums;">€ 10.00</span></td>
+              </tr>
+              <tr>
+                <td><span class="cell-mono"><a href="jobs-detail.html" style="color:var(--accent);">#005</a></span></td>
+                <td>
+                  <div class="cell-primary">Marc Dubois</div>
+                  <div class="cell-secondary">Wilson Ultra 100</div>
+                </td>
+                <td><span class="cell-mono">22 Jun 2026</span></td>
+                <td><span class="badge badge-paid">PayPal</span></td>
+                <td class="num-col"><span style="font-family:var(--font-mono);font-size:var(--text-sm);font-variant-numeric:tabular-nums;">€ 17.50</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <a href="dashboard.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="customers.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Customers
+    </a>
+    <a href="jobs-new.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Job
+    </a>
+    <a href="payments.html" class="mobile-nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/></svg>
+      Payments
+    </a>
+    <a href="settings.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg>
+      Settings
+    </a>
+  </div>
+</nav>
+
+<script>
+function switchTab(tab, btn) {
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-unpaid').style.display = tab === 'unpaid' ? '' : 'none';
+  document.getElementById('tab-paid').style.display = tab === 'paid' ? '' : 'none';
+}
+
+// ── Inline payment modal ──────────────────────────────
+let _activeBtn = null;
+
+function markPaidInline(btn) {
+  const row = btn.closest('tr');
+  const due = parseFloat(row.dataset.due || '17.50');
+  _activeBtn = btn;
+
+  // Build modal due block
+  document.getElementById('pm-due-block').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:var(--text-sm);">
+      <span style="color:var(--fg-muted);">Total due</span>
+      <span style="font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:600;">€ ${due.toFixed(2)}</span>
+    </div>`;
+
+  document.getElementById('pm-amount').value = due.toFixed(2);
+  document.getElementById('pm-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('pm-due-hidden').value = due;
+  calcPmResult(due);
+  document.getElementById('pay-modal').classList.add('open');
+}
+
+function calcPmResult(due) {
+  if (due === undefined) due = parseFloat(document.getElementById('pm-due-hidden').value);
+  const amtStr = document.getElementById('pm-amount').value;
+  const amt = parseFloat(amtStr);
+  const result = document.getElementById('pm-result');
+  const confirmBtn = document.getElementById('pm-confirm-btn');
+
+  if (!amtStr || isNaN(amt) || amt <= 0) {
+    result.className = 'pay-result empty';
+    result.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Enter the amount received above`;
+    confirmBtn.disabled = true;
+    return;
+  }
+  confirmBtn.disabled = false;
+  const diff = amt - due;
+  if (diff > 0.005) {
+    result.className = 'pay-result tip';
+    result.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg> Paid in full — <strong style="font-family:var(--font-mono);">€ ${diff.toFixed(2)}</strong> tip`;
+  } else if (diff < -0.005) {
+    result.className = 'pay-result short';
+    result.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> <strong style="font-family:var(--font-mono);">€ ${Math.abs(diff).toFixed(2)}</strong> still outstanding`;
+  } else {
+    result.className = 'pay-result exact';
+    result.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Paid in full`;
+  }
+}
+
+function closePayModal() { document.getElementById('pay-modal').classList.remove('open'); }
+
+function confirmPmPay() {
+  const amt = parseFloat(document.getElementById('pm-amount').value);
+  const due = parseFloat(document.getElementById('pm-due-hidden').value);
+  const method = document.getElementById('pm-method').value;
+  if (!amt || amt <= 0) return;
+
+  const diff = amt - due;
+  const row = _activeBtn.closest('tr');
+
+  if (diff < -0.005) {
+    // Partial — replace button with partial badge + remaining
+    const rem = Math.abs(diff);
+    _activeBtn.closest('td').innerHTML = `
+      <span class="badge badge-partial">Partial</span>
+      <div style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--status-overdue-fg);margin-top:2px;">€ ${rem.toFixed(2)} left</div>`;
+  } else if (diff > 0.005) {
+    // Tip
+    _activeBtn.closest('td').innerHTML = `
+      <span class="badge badge-paid">Paid · ${method}</span>
+      <div style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--status-done-fg);margin-top:2px;">€ ${diff.toFixed(2)} tip</div>`;
+  } else {
+    // Exact
+    _activeBtn.closest('td').innerHTML = `<span class="badge badge-paid">Paid · ${method}</span>`;
+  }
+  closePayModal();
+}
+</script>
+
+<!-- Pay modal -->
+<div class="modal-overlay" id="pay-modal" onclick="if(event.target===this)closePayModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Record Payment</span>
+      <button class="modal-close" onclick="closePayModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div style="display:grid;gap:var(--sp-4);">
+      <input type="hidden" id="pm-due-hidden" value="17.50" />
+      <div style="background:var(--surface-tinted);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-4);" id="pm-due-block"></div>
+      <div class="field">
+        <label for="pm-amount">Amount received (€)</label>
+        <input id="pm-amount" type="number" class="input input-mono" min="0" step="0.50" placeholder="0.00" oninput="calcPmResult()" />
+      </div>
+      <div class="pay-result empty" id="pm-result">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Enter the amount received above
+      </div>
+      <div class="field">
+        <label for="pm-method">Payment method</label>
+        <select id="pm-method" class="select">
+          <option value="Cash">Cash</option>
+          <option value="Bank transfer">Bank transfer</option>
+          <option value="PayPal">PayPal</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="pm-date">Date</label>
+        <input id="pm-date" type="date" class="input" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closePayModal()">Cancel</button>
+      <button class="btn btn-paid" id="pm-confirm-btn" onclick="confirmPmPay()" disabled>Save Payment</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Customers — StringPro</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+      </div>
+      <span class="sidebar-brand-name">StringPro</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="customers.html" class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Customers</span>
+      </a>
+      <a href="strings.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+        <span>Strings</span>
+      </a>
+      <a href="payments.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        <span>Payments</span>
+      </a>
+      <a href="settings.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header" data-od-id="page-header">
+      <div class="page-header-left">
+        <span class="page-eyebrow">4 customers</span>
+        <h1 class="page-title">Customers</h1>
+      </div>
+      <button class="btn btn-primary" onclick="openAddCustomer()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Customer
+      </button>
+    </div>
+
+    <div class="page-body">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="search-input" type="search" placeholder="Search customers…" oninput="searchCustomers(this.value)" />
+        </div>
+      </div>
+
+      <div class="data-table-wrap" data-od-id="customers-table">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th class="num-col">Rackets</th>
+              <th class="num-col">Active Jobs</th>
+              <th>Last Job</th>
+              <th class="num-col">Total Spent</th>
+              <th class="actions-col"></th>
+            </tr>
+          </thead>
+          <tbody id="customers-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add Customer modal -->
+<div class="modal-overlay" id="add-customer-modal" onclick="if(event.target===this)closeAddCustomer()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add Customer</span>
+      <button class="modal-close" onclick="closeAddCustomer()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="form-grid" style="gap:var(--sp-4);">
+      <div class="form-grid form-grid-2">
+        <div class="field">
+          <label for="new-firstname">First name</label>
+          <input id="new-firstname" type="text" class="input" placeholder="Marc" />
+        </div>
+        <div class="field">
+          <label for="new-lastname">Last name</label>
+          <input id="new-lastname" type="text" class="input" placeholder="Dubois" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="new-email">Email</label>
+        <input id="new-email" type="email" class="input" placeholder="marc@example.com" />
+      </div>
+      <div class="field">
+        <label for="new-phone">Phone</label>
+        <input id="new-phone" type="tel" class="input" placeholder="+41 78 123 45 67" />
+      </div>
+      <div class="field">
+        <label for="new-notes">Notes</label>
+        <textarea id="new-notes" class="textarea" placeholder="Anything useful to remember about this customer…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAddCustomer()">Cancel</button>
+      <button class="btn btn-primary" onclick="closeAddCustomer()">Save Customer</button>
+    </div>
+  </div>
+</div>
+
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <a href="dashboard.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="customers.html" class="mobile-nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Customers
+    </a>
+    <a href="jobs-new.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Job
+    </a>
+    <a href="payments.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/></svg>
+      Payments
+    </a>
+    <a href="settings.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg>
+      Settings
+    </a>
+  </div>
+</nav>
+
+<script>
+const CUSTOMERS = [
+  { id:'marc', name:'Marc Dubois', email:'marc.dubois@gmail.com', rackets:2, activeJobs:1, lastJob:'26 Jun 2026', total:'45.00' },
+  { id:'laura', name:'Laura Chen', email:'laura.chen@outlook.com', rackets:1, activeJobs:1, lastJob:'25 Jun 2026', total:'20.00' },
+  { id:'thomas', name:'Thomas Weber', email:'t.weber@gmail.com', rackets:1, activeJobs:1, lastJob:'24 Jun 2026', total:'17.50' },
+  { id:'sarah', name:'Sarah Kowalski', email:'s.kowalski@icloud.com', rackets:2, activeJobs:0, lastJob:'23 Jun 2026', total:'30.00' }
+];
+
+let searchQ = '';
+
+function renderCustomers() {
+  const tbody = document.getElementById('customers-tbody');
+  const filtered = CUSTOMERS.filter(c => !searchQ || c.name.toLowerCase().includes(searchQ) || c.email.toLowerCase().includes(searchQ));
+  tbody.innerHTML = filtered.map(c => `
+    <tr style="cursor:pointer;" onclick="window.location='customer-detail.html'">
+      <td><div class="cell-primary">${c.name}</div></td>
+      <td><span class="cell-mono">${c.email}</span></td>
+      <td class="num-col"><span style="font-family:var(--font-mono);">${c.rackets}</span></td>
+      <td class="num-col">
+        ${c.activeJobs > 0 ? `<span class="badge badge-progress">${c.activeJobs} active</span>` : `<span style="color:var(--fg-muted);font-size:var(--text-xs);">—</span>`}
+      </td>
+      <td><span class="cell-mono">${c.lastJob}</span></td>
+      <td class="num-col"><span style="font-family:var(--font-mono);font-size:var(--text-sm);">€ ${c.total}</span></td>
+      <td class="actions-col" onclick="event.stopPropagation()">
+        <a href="customer-detail.html" class="btn btn-sm btn-ghost">View →</a>
+      </td>
+    </tr>
+  `).join('');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:var(--sp-12);color:var(--fg-muted);font-size:var(--text-sm);">No customers found. <button class="btn btn-sm btn-primary" onclick="openAddCustomer()" style="margin-left:var(--sp-3);">Add Customer</button></td></tr>`;
+  }
+}
+
+function searchCustomers(q) { searchQ = q.toLowerCase(); renderCustomers(); }
+function openAddCustomer() { document.getElementById('add-customer-modal').classList.add('open'); }
+function closeAddCustomer() { document.getElementById('add-customer-modal').classList.remove('open'); }
+
+renderCustomers();
+</script>
+</body>
+</html>

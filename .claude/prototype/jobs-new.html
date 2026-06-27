@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create Job — StringPro</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    .form-layout { display: grid; grid-template-columns: 1fr 320px; gap: var(--sp-8); align-items: start; }
+    @media (max-width: 900px) { .form-layout { grid-template-columns: 1fr; } }
+    .sticky-aside { position: sticky; top: var(--sp-8); }
+    .string-source-row { transition: opacity 200ms; }
+    .string-source-row.hidden { opacity: 0; pointer-events: none; height: 0; overflow: hidden; margin: 0 !important; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+      </div>
+      <span class="sidebar-brand-name">StringPro</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="customers.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Customers</span>
+      </a>
+      <a href="strings.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+        <span>Strings</span>
+      </a>
+      <a href="payments.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        <span>Payments</span>
+      </a>
+      <a href="settings.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header" data-od-id="page-header">
+      <div class="page-header-left">
+        <div class="breadcrumb">
+          <a href="dashboard.html">Dashboard</a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span>New Job</span>
+        </div>
+        <h1 class="page-title">Create Job</h1>
+      </div>
+      <div style="display:flex;gap:var(--sp-3);">
+        <a href="dashboard.html" class="btn btn-ghost">Cancel</a>
+        <button class="btn btn-primary" onclick="submitJob()">Save Job</button>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="form-layout">
+        <!-- Form -->
+        <div>
+          <!-- Customer & Racket -->
+          <div class="card" data-od-id="customer-section" style="margin-bottom:var(--sp-5);">
+            <div class="form-section-title" style="margin-bottom:var(--sp-5);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              Customer &amp; Racket
+            </div>
+            <div class="form-grid" style="gap:var(--sp-4);">
+              <div class="field">
+                <label for="customer">Customer</label>
+                <select id="customer" class="select" onchange="updateRackets()">
+                  <option value="">Select customer…</option>
+                  <option value="marc">Marc Dubois</option>
+                  <option value="laura">Laura Chen</option>
+                  <option value="thomas">Thomas Weber</option>
+                  <option value="sarah">Sarah Kowalski</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="racket">Racket</label>
+                <select id="racket" class="select">
+                  <option value="">Select racket…</option>
+                </select>
+                <div class="field-hint">Or <a href="customer-detail.html" style="color:var(--accent);">add a new racket</a> for this customer first.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stringing -->
+          <div class="card" data-od-id="stringing-section" style="margin-bottom:var(--sp-5);">
+            <div class="form-section-title" style="margin-bottom:var(--sp-5);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+              Stringing
+            </div>
+
+            <div class="field" style="margin-bottom:var(--sp-4);">
+              <label>String source</label>
+              <div class="toggle-group">
+                <input type="radio" name="string-source" id="my-strings" value="mine" checked onchange="toggleStringSource('mine')" />
+                <label for="my-strings">I supply strings</label>
+                <input type="radio" name="string-source" id="cust-strings" value="customer" onchange="toggleStringSource('customer')" />
+                <label for="cust-strings">Customer brings strings</label>
+              </div>
+            </div>
+
+            <div id="mine-string-row" class="string-source-row form-grid" style="margin-bottom:var(--sp-4);">
+              <div class="field">
+                <label for="string-select">String</label>
+                <select id="string-select" class="select" onchange="updateStringFee()">
+                  <option value="">Select string…</option>
+                  <option value="rpm" data-cost="7.50">Babolat RPM Blast 1.25 mm (Polyester)</option>
+                  <option value="alu" data-cost="7.50">Luxilon Alu Power 1.30 mm (Polyester)</option>
+                  <option value="xone" data-cost="7.50">Tecnifibre X-One Biphase 1.24 mm (Multifilament)</option>
+                  <option value="nxt" data-cost="7.50">Wilson NXT 1.30 mm (Multifilament)</option>
+                </select>
+              </div>
+            </div>
+            <div id="customer-string-row" class="string-source-row form-grid hidden" style="margin-bottom:var(--sp-4);">
+              <div class="field">
+                <label for="customer-string-name">String name <span style="font-weight:400;color:var(--fg-muted);">(optional)</span></label>
+                <input id="customer-string-name" type="text" class="input" placeholder="e.g. Luxilon Alu Power 1.25 mm" />
+              </div>
+            </div>
+
+            <div class="form-grid form-grid-2">
+              <div class="field">
+                <label for="tension-main">Mains tension (kg)</label>
+                <input id="tension-main" type="number" class="input input-mono" min="14" max="36" step="0.5" placeholder="e.g. 24" />
+              </div>
+              <div class="field">
+                <label for="tension-cross">Crosses tension (kg)</label>
+                <input id="tension-cross" type="number" class="input input-mono" min="14" max="36" step="0.5" placeholder="e.g. 22  (optional)" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Job details -->
+          <div class="card" data-od-id="details-section">
+            <div class="form-section-title" style="margin-bottom:var(--sp-5);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+              Job Details
+            </div>
+            <div class="form-grid">
+              <div class="form-grid form-grid-2">
+                <div class="field">
+                  <label for="deadline">Deadline</label>
+                  <input id="deadline" type="date" class="input" />
+                </div>
+                <div class="field">
+                  <label for="status">Initial status</label>
+                  <select id="status" class="select">
+                    <option value="queued" selected>Queued</option>
+                    <option value="progress">In Progress</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label for="notes">Notes</label>
+                <textarea id="notes" class="textarea" placeholder="Any special instructions, preferences, or notes for this job…"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Aside: price summary -->
+        <div class="sticky-aside">
+          <div class="card" data-od-id="price-aside">
+            <div style="font-size:var(--text-sm);font-weight:600;color:var(--fg);margin-bottom:var(--sp-4);">Price Summary</div>
+            <div class="price-summary">
+              <div class="price-row">
+                <span class="price-key">Service fee</span>
+                <span class="price-val">€ 10.00</span>
+              </div>
+              <div class="price-row" id="string-fee-row">
+                <span class="price-key">String fee</span>
+                <span class="price-val" id="string-fee-val">€ 7.50</span>
+              </div>
+              <div class="price-total">
+                <span class="price-key">Total</span>
+                <span class="price-val" id="total-val">€ 17.50</span>
+              </div>
+            </div>
+            <div style="margin-top:var(--sp-4);">
+              <div class="field">
+                <label for="payment-status">Payment at creation</label>
+                <select id="payment-status" class="select">
+                  <option value="unpaid">Unpaid</option>
+                  <option value="paid-cash">Paid — Cash</option>
+                  <option value="paid-bank">Paid — Bank transfer</option>
+                  <option value="paid-paypal">Paid — PayPal</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:var(--sp-4);padding:var(--sp-4);background:var(--surface-tinted);border-radius:var(--r-md);font-size:var(--text-xs);color:var(--fg-muted);line-height:1.6;">
+            Payment can also be recorded later from the job detail or Payments view.
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <a href="dashboard.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="customers.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Customers
+    </a>
+    <a href="jobs-new.html" class="mobile-nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Job
+    </a>
+    <a href="payments.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+      Payments
+    </a>
+    <a href="settings.html" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg>
+      Settings
+    </a>
+  </div>
+</nav>
+
+<script>
+const RACKETS = {
+  marc:   ['Wilson Pro Staff 97 (2023)', 'Wilson Ultra 100'],
+  laura:  ['Head Speed MP (2024)'],
+  thomas: ['Yonex Vcore 95'],
+  sarah:  ['Babolat Pure Drive (2023)', 'Babolat Pure Aero']
+};
+
+function updateRackets() {
+  const customer = document.getElementById('customer').value;
+  const racketSel = document.getElementById('racket');
+  racketSel.innerHTML = '<option value="">Select racket…</option>';
+  if (RACKETS[customer]) {
+    RACKETS[customer].forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r;
+      opt.textContent = r;
+      racketSel.appendChild(opt);
+    });
+  }
+}
+
+function toggleStringSource(source) {
+  const mineRow = document.getElementById('mine-string-row');
+  const customerRow = document.getElementById('customer-string-row');
+  const feeRow = document.getElementById('string-fee-row');
+  const totalEl = document.getElementById('total-val');
+  if (source === 'mine') {
+    mineRow.classList.remove('hidden');
+    customerRow.classList.add('hidden');
+    feeRow.style.display = '';
+    totalEl.textContent = '€ 17.50';
+  } else {
+    mineRow.classList.add('hidden');
+    customerRow.classList.remove('hidden');
+    feeRow.style.display = 'none';
+    totalEl.textContent = '€ 10.00';
+  }
+}
+
+function updateStringFee() {
+  const sel = document.getElementById('string-select');
+  const cost = sel.selectedOptions[0]?.dataset?.cost || '7.50';
+  document.getElementById('string-fee-val').textContent = `€ ${cost}`;
+  const total = (10 + parseFloat(cost)).toFixed(2);
+  document.getElementById('total-val').textContent = `€ ${total}`;
+}
+
+function submitJob() {
+  const customer = document.getElementById('customer').value;
+  const racket = document.getElementById('racket').value;
+  const main = document.getElementById('tension-main').value;
+  if (!customer) { alert('Please select a customer.'); return; }
+  if (!racket) { alert('Please select a racket.'); return; }
+  if (!main) { alert('Tension must be between 14 and 36 kg.'); return; }
+  window.location = 'jobs-detail.html';
+}
+
+// Set today's date as default deadline
+const tomorrow = new Date();
+tomorrow.setDate(tomorrow.getDate() + 2);
+document.getElementById('deadline').value = tomorrow.toISOString().split('T')[0];
+</script>
+</body>
+</html>

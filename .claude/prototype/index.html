@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StringPro — Tennis Stringing App</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    body { background: var(--bg); }
+    .launcher-header {
+      background: var(--clay-700);
+      padding: var(--sp-8) var(--sp-10);
+      display: flex;
+      align-items: center;
+      gap: var(--sp-4);
+    }
+    .launcher-brand {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-3);
+    }
+    .launcher-brand-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--accent);
+      border-radius: var(--r-lg);
+      display: grid;
+      place-items: center;
+      color: white;
+      flex-shrink: 0;
+    }
+    .launcher-brand-icon svg { width: 22px; height: 22px; }
+    .launcher-brand-text { color: var(--clay-50); }
+    .launcher-brand-name { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; line-height: 1; }
+    .launcher-brand-sub { font-size: var(--text-xs); color: var(--clay-300); font-family: var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; }
+    .launcher-body { padding: var(--sp-10); max-width: 1200px; margin: 0 auto; }
+    .screen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--sp-5); }
+    .screen-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      box-shadow: var(--sh-sm);
+      transition: box-shadow 160ms ease-out, transform 160ms ease-out;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .screen-card:hover { box-shadow: var(--sh-md); transform: translateY(-2px); }
+    .screen-thumb {
+      height: 160px;
+      background: var(--surface-tinted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid var(--border);
+      color: var(--clay-300);
+      position: relative;
+      overflow: hidden;
+    }
+    .screen-thumb-icon { opacity: 0.4; }
+    .screen-thumb-icon svg { width: 56px; height: 56px; stroke-width: 1; }
+    .screen-thumb-label {
+      position: absolute;
+      bottom: var(--sp-3);
+      left: var(--sp-3);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--clay-300);
+    }
+    .screen-info { padding: var(--sp-4) var(--sp-5); }
+    .screen-name { font-weight: 600; color: var(--fg); font-size: var(--text-base); margin-bottom: 4px; }
+    .screen-desc { font-size: var(--text-sm); color: var(--fg-muted); line-height: 1.5; }
+    /* Mini sidebar preview strip in thumb */
+    .thumb-sidebar {
+      position: absolute;
+      inset-block: 0;
+      left: 0;
+      width: 40px;
+      background: var(--clay-700);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 12px;
+      gap: 14px;
+    }
+    .thumb-sidebar-dot { width: 16px; height: 4px; border-radius: 2px; background: var(--clay-500); opacity: 0.6; }
+    .thumb-sidebar-dot.active { background: var(--accent); opacity: 1; }
+    .thumb-content { position: absolute; inset: 0; left: 40px; padding: 12px; }
+    .thumb-row { height: 8px; background: var(--clay-200); border-radius: 3px; margin-bottom: 6px; }
+    .thumb-row.short { width: 60%; }
+    .thumb-row.badge { width: 50px; height: 16px; border-radius: var(--r-full); background: var(--status-pending-bg); display: inline-block; }
+    @media (max-width: 639px) {
+      .launcher-body { padding: var(--sp-5); }
+      .launcher-header { padding: var(--sp-5); }
+      .screen-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="launcher-header" data-od-id="launcher-header">
+  <div class="launcher-brand">
+    <div class="launcher-brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+    </div>
+    <div class="launcher-brand-text">
+      <div class="launcher-brand-name">StringPro</div>
+      <div class="launcher-brand-sub">Tennis Stringing · Job Manager</div>
+    </div>
+  </div>
+</div>
+
+<div class="launcher-body">
+  <div style="margin-bottom:var(--sp-8);" data-od-id="launcher-intro">
+    <h1 style="font-family:var(--font-display);font-size:clamp(1.5rem,4vw,2.25rem);font-weight:700;letter-spacing:-0.02em;color:var(--fg);margin-bottom:var(--sp-3);">Your stringing business, organised.</h1>
+    <p style="font-size:var(--text-base);color:var(--fg-muted);max-width:56ch;line-height:1.65;">Manage jobs, customers, rackets, string inventory, and payments in one place. Open any screen below to explore the prototype.</p>
+  </div>
+
+  <div class="screen-grid" data-od-id="screen-grid">
+
+    <a href="dashboard.html" class="screen-card">
+      <div class="screen-thumb">
+        <div class="thumb-sidebar">
+          <div class="thumb-sidebar-dot active"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+        </div>
+        <div class="thumb-content">
+          <div class="thumb-row" style="width:80%;height:10px;margin-bottom:10px;background:var(--clay-900);opacity:0.15;border-radius:4px;"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+            <div style="height:32px;background:var(--clay-100);border-radius:4px;border:1px solid var(--border);"></div>
+            <div style="height:32px;background:var(--clay-100);border-radius:4px;border:1px solid var(--border);"></div>
+          </div>
+          <div style="height:6px;background:var(--border);border-radius:2px;margin-bottom:5px;"></div>
+          <div style="height:6px;background:var(--border);border-radius:2px;width:70%;margin-bottom:5px;"></div>
+          <div style="height:6px;background:var(--border);border-radius:2px;width:85%;"></div>
+        </div>
+        <div class="thumb-label">Dashboard</div>
+      </div>
+      <div class="screen-info">
+        <div class="screen-name">Dashboard</div>
+        <div class="screen-desc">Job queue sorted by stage. Summary cards for active jobs, outstanding payments, and monthly revenue.</div>
+      </div>
+    </a>
+
+    <a href="jobs-new.html" class="screen-card">
+      <div class="screen-thumb" style="background:var(--clay-100);">
+        <div class="thumb-sidebar">
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+        </div>
+        <div class="thumb-content">
+          <div style="height:10px;width:60%;background:var(--clay-900);opacity:0.12;border-radius:3px;margin-bottom:10px;"></div>
+          <div style="height:26px;background:var(--surface);border:1px solid var(--border);border-radius:4px;margin-bottom:6px;"></div>
+          <div style="height:26px;background:var(--surface);border:1px solid var(--border);border-radius:4px;margin-bottom:6px;"></div>
+          <div style="height:26px;background:var(--accent);border-radius:4px;opacity:0.8;"></div>
+        </div>
+        <div class="thumb-label">New Job</div>
+      </div>
+      <div class="screen-info">
+        <div class="screen-name">Create Job</div>
+        <div class="screen-desc">New job form — customer, racket, string source toggle, tension, deadline. Price auto-calculates.</div>
+      </div>
+    </a>
+
+    <a href="jobs-detail.html" class="screen-card">
+      <div class="screen-thumb">
+        <div class="thumb-sidebar">
+          <div class="thumb-sidebar-dot active"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+        </div>
+        <div class="thumb-content">
+          <div style="display:flex;gap:4px;margin-bottom:8px;align-items:center;">
+            <div style="flex:1;height:4px;background:var(--accent);border-radius:2px;"></div>
+            <div style="flex:1;height:4px;background:var(--accent);opacity:0.4;border-radius:2px;"></div>
+            <div style="flex:1;height:4px;background:var(--border);border-radius:2px;"></div>
+            <div style="flex:1;height:4px;background:var(--border);border-radius:2px;"></div>
+          </div>
+          <div style="height:6px;background:var(--border);border-radius:2px;margin-bottom:4px;"></div>
+          <div style="height:6px;background:var(--border);border-radius:2px;width:75%;margin-bottom:4px;"></div>
+          <div style="height:28px;background:var(--ball-500);border-radius:4px;opacity:0.7;margin-top:8px;"></div>
+        </div>
+        <div class="thumb-label">Job Detail</div>
+      </div>
+      <div class="screen-info">
+        <div class="screen-name">Job Detail</div>
+        <div class="screen-desc">4-stage progress bar, stringing details, payment section, and one-tap Mark Paid.</div>
+      </div>
+    </a>
+
+    <a href="customers.html" class="screen-card">
+      <div class="screen-thumb" style="background:var(--clay-100);">
+        <div class="thumb-sidebar">
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot active"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+        </div>
+        <div class="thumb-content">
+          <div style="height:6px;background:var(--border);border-radius:2px;margin-bottom:6px;"></div>
+          <div style="height:6px;background:var(--border);border-radius:2px;width:85%;margin-bottom:6px;"></div>
+          <div style="height:6px;background:var(--border);border-radius:2px;width:70%;margin-bottom:6px;"></div>
+          <div style="height:6px;background:var(--border);border-radius:2px;width:90%;"></div>
+        </div>
+        <div class="thumb-label">Customers</div>
+      </div>
+      <div class="screen-info">
+        <div class="screen-name">Customers</div>
+        <div class="screen-desc">Searchable customer list with active job count and total spent. Add customer modal.</div>
+      </div>
+    </a>
+
+    <a href="customer-detail.html" class="screen-card">
+      <div class="screen-thumb">
+        <div class="thumb-sidebar">
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot active"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+        </div>
+        <div class="thumb-content">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px;">
+            <div style="height:50px;background:var(--surface-tinted);border:1px solid var(--border);border-radius:4px;"></div>
+            <div style="height:50px;background:var(--surface-tinted);border:1px solid var(--border);border-radius:4px;"></div>
+          </div>
+          <div style="height:6px;background:var(--border);border-radius:2px;margin-bottom:4px;"></div>
+          <div style="height:6px;background:var(--border);border-radius:2px;width:80%;"></div>
+        </div>
+        <div class="thumb-label">Customer Detail</div>
+      </div>
+      <div class="screen-info">
+        <div class="screen-name">Customer Detail</div>
+        <div class="screen-desc">Contact info, racket grid with add button, full job history for this customer.</div>
+      </div>
+    </a>
+
+    <a href="strings.html" class="screen-card">
+      <div class="screen-thumb" style="background:var(--clay-100);">
+        <div class="thumb-sidebar">
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot active"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+        </div>
+        <div class="thumb-content">
+          <div style="height:6px;background:var(--border);border-radius:2px;margin-bottom:6px;"></div>
+          <div style="display:flex;gap:4px;margin-bottom:5px;align-items:center;">
+            <div style="flex:2;height:6px;background:var(--border);border-radius:2px;"></div>
+            <div style="flex:1;height:6px;background:var(--border);border-radius:2px;"></div>
+            <div style="width:20px;height:12px;background:var(--accent);border-radius:6px;opacity:0.7;"></div>
+          </div>
+          <div style="display:flex;gap:4px;margin-bottom:5px;align-items:center;">
+            <div style="flex:2;height:6px;background:var(--border);border-radius:2px;"></div>
+            <div style="flex:1;height:6px;background:var(--border);border-radius:2px;"></div>
+            <div style="width:20px;height:12px;background:var(--border-strong);border-radius:6px;"></div>
+          </div>
+        </div>
+        <div class="thumb-label">Strings</div>
+      </div>
+      <div class="screen-info">
+        <div class="screen-name">String Inventory</div>
+        <div class="screen-desc">Strings table with brand, material, gauge, cost price, and available toggle.</div>
+      </div>
+    </a>
+
+    <a href="payments.html" class="screen-card">
+      <div class="screen-thumb">
+        <div class="thumb-sidebar">
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot active"></div>
+          <div class="thumb-sidebar-dot"></div>
+        </div>
+        <div class="thumb-content">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px;">
+            <div style="height:36px;background:oklch(52% 0.18 25 / 0.08);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;">
+              <div style="font-family:monospace;font-size:10px;color:oklch(40% 0.18 25);">€ 35</div>
+            </div>
+            <div style="height:36px;background:oklch(80% 0.19 115 / 0.15);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;">
+              <div style="font-family:monospace;font-size:10px;color:var(--court-700);">€ 37</div>
+            </div>
+          </div>
+          <div style="height:6px;background:var(--border);border-radius:2px;margin-bottom:4px;"></div>
+          <div style="height:6px;background:var(--border);border-radius:2px;width:75%;"></div>
+        </div>
+        <div class="thumb-label">Payments</div>
+      </div>
+      <div class="screen-info">
+        <div class="screen-name">Payments</div>
+        <div class="screen-desc">Outstanding vs. collected summary. Tabs for unpaid and paid jobs with Mark Paid inline.</div>
+      </div>
+    </a>
+
+    <a href="settings.html" class="screen-card">
+      <div class="screen-thumb" style="background:var(--clay-100);">
+        <div class="thumb-sidebar">
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot"></div>
+          <div class="thumb-sidebar-dot active"></div>
+        </div>
+        <div class="thumb-content">
+          <div style="height:26px;background:var(--surface);border:1px solid var(--border);border-radius:4px;margin-bottom:6px;"></div>
+          <div style="height:26px;background:var(--surface);border:1px solid var(--border);border-radius:4px;margin-bottom:6px;"></div>
+          <div style="height:22px;background:var(--accent);border-radius:4px;width:50px;opacity:0.8;"></div>
+        </div>
+        <div class="thumb-label">Settings</div>
+      </div>
+      <div class="screen-info">
+        <div class="screen-name">Settings</div>
+        <div class="screen-desc">Service fee and string fee defaults, payment methods, and stringer profile.</div>
+      </div>
+    </a>
+
+  </div>
+</div>
+
+</body>
+</html>
