@@ -87,6 +87,10 @@ Use these terms exactly — they match the backend and the UI copy:
 | **Service Fee** | Labor charge configured in Settings | Labor cost, stringing fee |
 | **String Fee** | Material cost per String in inventory | Material cost, string cost |
 | **String** | A string product in inventory | Product, item, cord |
+| **Payment** | A recorded payment against a Job (`amount` + method); a Job may have many | Mark paid (flag), settle |
+| **Payment Method** | Per-Payment enum: Cash / Bank transfer / PayPal | Payment type, configurable option |
+| **Balance** | A single Job's remaining owed = `total − amountPaid` | Outstanding (that's the page aggregate) |
+| **Outstanding** | Page-level sum of all unpaid Jobs' Balances | Balance (that's per-Job) |
 
 ## Design system (source of truth: `.claude/prototype/shared.css`)
 
@@ -109,7 +113,7 @@ All design tokens are CSS custom properties in `shared.css`. No raw hex values i
 - Job stages: `.badge-announced` / `.badge-picked-up` / `.badge-in-progress` / `.badge-done` / `.badge-returned`
 - Payment/other (currently unused): `.badge-paid` / `.badge-unpaid` / `.badge-overdue`
 
-**Job lifecycle (matches the backend `stage` enum):** Announced → Picked Up → In Progress → Done → Returned. Forward-only, never backward. **There is no `PAID` stage** — payment is a separate, currently-unmodelled concern. See `CONTEXT.md` for the canonical definitions.
+**Job lifecycle (matches the backend `stage` enum):** Announced → Picked Up → In Progress → Done → Returned. Forward-only, never backward. **There is no `PAID` stage** — payment is a separate concern modelled as **Payments** recorded against a Job (`POST /payments`), never as a Stage. See `CONTEXT.md` for the canonical definitions.
 
 **App shell layout:**
 - Fixed sidebar: `--sidebar-w: 240px` at desktop, collapses to `48px` at `≤1023px`, hidden at `≤639px`

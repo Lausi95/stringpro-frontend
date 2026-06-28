@@ -185,6 +185,10 @@ export interface JobResponse {
   serviceFee: number
   totalStringFee: number
   total: number
+  /** Sum of recorded Payments against this Job (derived, read-only). */
+  amountPaid: number
+  /** True once amountPaid ≥ total (derived, read-only). */
+  fullyPaid: boolean
   stage: JobStage
   createdAt: string
 }
@@ -536,6 +540,7 @@ export async function listJobs(
     customerId?: string
     racketId?: string
     reelId?: string
+    fullyPaid?: boolean
   } = {},
 ): Promise<PagedJobResponse> {
   const query = new URLSearchParams()
@@ -545,6 +550,7 @@ export async function listJobs(
   if (params.customerId) query.set('customerId', params.customerId)
   if (params.racketId) query.set('racketId', params.racketId)
   if (params.reelId) query.set('reelId', params.reelId)
+  if (params.fullyPaid !== undefined) query.set('fullyPaid', String(params.fullyPaid))
   const res = await fetch(`${API_BASE}/jobs?${query}`, { headers: authHeaders(token) })
   await throwIfNotOk(res)
   return res.json()
@@ -557,7 +563,13 @@ export async function listJobs(
  */
 export async function fetchAllJobs(
   token: string,
-  params: { stage?: JobStage; customerId?: string; racketId?: string; reelId?: string } = {},
+  params: {
+    stage?: JobStage
+    customerId?: string
+    racketId?: string
+    reelId?: string
+    fullyPaid?: boolean
+  } = {},
   pageSize = 200,
 ): Promise<JobResponse[]> {
   const all: JobResponse[] = []
@@ -622,4 +634,47 @@ export async function deleteJob(token: string, id: string): Promise<void> {
     headers: authHeaders(token),
   })
   await throwIfNotOk(res)
+}
+
+// ── Payments ────────────────────────────────────────────────────────────────
+
+/** How a Payment was made. Fixed backend enum — not configurable in Settings. */
+export type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'PAYPAL'
+
+export const PAYMENT_METHODS: PaymentMethod[] = ['CASH', 'BANK_TRANSFER', 'PAYPAL']
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  CASH: 'Cash',
+  BANK_TRANSFER: 'Bank transfer',
+  PAYPAL: 'PayPal',
+}
+
+export interface PaymentResponse {
+  id: string
+  jobId: string
+  customerId: string
+  amount: number
+  method: PaymentMethod
+  createdAt: string
+}
+
+export interface CreatePaymentRequest {
+  jobId: string
+  customerId: string
+  amount: number
+  method: PaymentMethod
+}
+
+/** Record a Payment against a Job. Amount may be partial or exceed the Balance (a tip). */
+export async function createPayment(
+  token: string,
+  data: CreatePaymentRequest,
+): Promise<PaymentResponse> {
+  const res = await fetch(`${API_BASE}/payments`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(data),
+  })
+  await throwIfNotOk(res)
+  return res.json()
 }

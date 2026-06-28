@@ -7,15 +7,8 @@ import CustomersPage from './pages/customers/CustomersPage'
 import CustomerDetailPage from './pages/customers/CustomerDetailPage'
 import StringsPage from './pages/strings/StringsPage'
 import ReelDetailPage from './pages/strings/ReelDetailPage'
+import PaymentsPage from './pages/payments/PaymentsPage'
 import SettingsPage from './pages/settings/SettingsPage'
-
-function NotImplemented({ name }: { name: string }) {
-  return (
-    <div style={{ padding: '2rem', fontFamily: 'var(--font-body)' }}>
-      <p style={{ color: 'var(--fg-muted)' }}>{name} — not yet implemented</p>
-    </div>
-  )
-}
 
 export default function App() {
   return (
@@ -30,7 +23,7 @@ export default function App() {
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="/strings" element={<StringsPage />} />
           <Route path="/strings/:id" element={<ReelDetailPage />} />
-          <Route path="/payments" element={<NotImplemented name="Payments" />} />
+          <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

@@ -9,7 +9,7 @@ A single-page application for managing a tennis stringing business. The app is u
 **Job**: The unit of work — a Racket brought in by a Customer to be strung. A Job moves through a fixed lifecycle and carries a price derived from Service Fee and String Fee.
 _Avoid_: Order, request, ticket
 
-**Stage**: The current lifecycle state of a Job. Progresses in one direction only, never backward: Announced → Picked Up → In Progress → Done → Returned. The backend enum values are `ANNOUNCED`, `PICKED_UP`, `IN_PROGRESS`, `DONE`, `RETURNED`. **Payment is not a Stage** — there is no `PAID` stage; payment is a separate, currently-unmodelled concern. New Jobs begin at `ANNOUNCED` (the customer has said they will bring a Racket in but it is not yet physically here).
+**Stage**: The current lifecycle state of a Job. Progresses in one direction only, never backward: Announced → Picked Up → In Progress → Done → Returned. The backend enum values are `ANNOUNCED`, `PICKED_UP`, `IN_PROGRESS`, `DONE`, `RETURNED`. **Payment is not a Stage** — there is no `PAID` stage; payment is a separate concern, modelled as [[Payment]]s recorded against a Job rather than as a Stage (see *Payments* under Pricing). A Job can be unpaid at any Stage and Returned while still owing a Balance. New Jobs begin at `ANNOUNCED` (the customer has said they will bring a Racket in but it is not yet physically here).
 - **Announced** (`ANNOUNCED`) — intake recorded; Racket not yet received.
 - **Picked Up** (`PICKED_UP`) — Racket physically received by the Stringer.
 - **In Progress** (`IN_PROGRESS`) — being strung.
@@ -55,9 +55,32 @@ _Avoid_: Labor cost, stringing fee
 **String Fee**: The material charge billed to the Customer per stringing, configured per Reel. A Reel's String Fee covers stringing a *whole* racket, so on a **Hybrid** Job each Reel side is billed **half** its String Fee (each Reel strings only half the racket); a **Mono** Job bills the full String Fee once. Customer's-own (`OWN`) sides carry no String Fee.
 _Avoid_: Material cost, string cost
 
+### Payments
+
+**Payment**: A single recorded payment a Customer makes against a Job — an `amount` and a [[Payment Method]], created via `POST /payments` with a server-assigned creation time. A Job may accumulate **many** Payments over its life (e.g. a deposit, then the remainder). This is the model that replaced the formerly "unmodelled" payment concern; there is still no `PAID` Stage.
+_Avoid_: A boolean "paid" flag on the Job, a PAID Stage, "Mark Paid" (the act is recording a Payment, which may be partial)
+
+**Payment Method**: How a Payment was made — a fixed backend enum: **Cash** (`CASH`), **Bank transfer** (`BANK_TRANSFER`), **PayPal** (`PAYPAL`). It is a property of each Payment, not a Setting and not configurable.
+_Avoid_: Payment type, configurable payment options
+
+**Amount Paid / Fully Paid**: Both are *derived* read-only fields on the Job, not independently stored. **Amount Paid** (`amountPaid`) is the sum of the Job's Payment amounts; **Fully Paid** (`fullyPaid`) is true once Amount Paid ≥ the Job `total`. A Job is "unpaid" precisely when `fullyPaid` is false.
+_Avoid_: Treating amountPaid as a settable field
+
+**Balance**: A single Job's remaining amount owed — its `total` minus **Amount Paid**. This is the per-Job figure shown on each Payments-page row and pre-filled into the Record Payment form. Reserve the word **Balance** for the per-Job number.
+_Avoid_: Using "Outstanding" for a single Job (that names the page aggregate)
+
+**Outstanding**: The page-level aggregate on the Payments page — the sum of the **Balances** of every not-Fully-Paid Job. A roll-up across Jobs, distinct from any one Job's Balance.
+_Avoid_: Using "Outstanding" for a single Job's remaining amount
+
+**Overpayment / Tip**: A Payment whose `amount` carries the Job past its `total`; the excess is a tip. Permitted — the backend accepts it and the Job still becomes Fully Paid.
+_Avoid_: Forbidding amounts above the Balance, modelling a tip as a separate field
+
+**Recording a Payment**: The act of capturing a Payment against a Job, via the **Record Payment** form. The verb is *record* / *capture*, never "mark paid" — a recorded Payment may be partial, exact, or an overpayment.
+_Avoid_: "Mark as paid", "settle"
+
 ### Configuration
 
-**Settings**: The single global configuration record for the installation, owned by the Stringer. It consists of exactly: the Service Fee, and the Stringer's identity/contact details (full name, email, IBAN, address). There is no payment-method configuration — payment methods are not a modelled concept. The String Fee is *not* a Setting; it lives per Reel. Settings is a singleton (one per installation), always readable (defaults until first saved).
+**Settings**: The single global configuration record for the installation, owned by the Stringer. It consists of exactly: the Service Fee, and the Stringer's identity/contact details (full name, email, IBAN, address). There is no payment-method configuration in Settings — the [[Payment Method]] is a fixed enum carried per Payment, not a configurable Setting. The String Fee is *not* a Setting; it lives per Reel. Settings is a singleton (one per installation), always readable (defaults until first saved).
 _Avoid_: Preferences, config, profile
 
 ### Inventory
