@@ -72,6 +72,9 @@ _Avoid_: Roll, spool, string (when meaning the physical unit)
 - **Used up** (`USED_UP`) — exhausted or retired; no longer available.
 _Avoid_: Status, availability, active/inactive
 
+**Reel commitment**: A New Reel becomes In Use when the Stringer **starts** a Job that strings from it — i.e. when that Job enters **In Progress**. The Stringer confirms this; starting the Job and committing its New Reel(s) are a single all-or-nothing act (the Job will not start unless its New Reels move to In Use, and a failure leaves nothing changed). A Reel already In Use needs no commitment; declining leaves both the Reel New and the Job at Picked Up. This is the only New → In Use trigger; it is distinct from *Reel consumption* (which never changes state) and from retiring a Reel to Used up (always a manual act).
+_Avoid_: Silent/automatic state change, auto-activating a Reel without confirmation
+
 **Reel consumption**: How a Reel is drawn down by the Jobs that string from it. A Reel is considered consumed by a Job only once that Job reaches **In Progress** — earlier Stages (`ANNOUNCED`, `PICKED_UP`) reference the Reel but have not yet pulled string from it. A **Mono** Job draws one whole stringing's worth of String from its Reel; each side of a **Hybrid** Job draws **half** a stringing (the Reel strings only half the racket). Reel consumption is a *derived, informational* view computed from Jobs — it never changes the Reel's explicitly-tracked Reel state, and it does not decrement any stored quantity.
 _Avoid_: Depletion as a stored field, auto-retiring a Reel from usage
 

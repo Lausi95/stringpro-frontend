@@ -9,6 +9,7 @@ import {
   getRacket,
   getReel,
   changeJobStage,
+  changeReelState,
   deleteJob,
   nextStage,
   JOB_STAGES,
@@ -17,6 +18,7 @@ import {
   type JobResponse,
   type CustomerResponse,
   type RacketResponse,
+  type ReelResponse,
   type StringSideResponse,
 } from '../../lib/api'
 
@@ -24,6 +26,48 @@ const money = (n: number) => `€ ${n.toFixed(2)}`
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+/**
+ * The Reel-backed String Sides of a Job, with the side they sit on. A Mono Job
+ * is mains-only (matching ADR 0006); a Hybrid Job adds the crosses side.
+ */
+function reelSideRefs(job: JobResponse): { reelId: string; label: string }[] {
+  const refs: { reelId: string; label: string }[] = []
+  if (job.mains.type === 'REEL' && job.mains.reelId) {
+    refs.push({ reelId: job.mains.reelId, label: 'mains' })
+  }
+  if (job.hybrid && job.crosses?.type === 'REEL' && job.crosses.reelId) {
+    refs.push({ reelId: job.crosses.reelId, label: 'crosses' })
+  }
+  return refs
+}
+
+/** Distinct Reel ids a Job draws from (deduped across sides). */
+function referencedReelIds(job: JobResponse): string[] {
+  return [...new Set(reelSideRefs(job).map((r) => r.reelId))]
+}
+
+/**
+ * The Reels a Job draws from that are still `NEW` — the ones that must be
+ * committed to `IN_USE` before the Job can start. See ADR 0008. Deduped by
+ * Reel, collecting the side label(s) each Reel sits on. A Reel that failed to
+ * load (absent from the map) is skipped — its state is unknown.
+ */
+function newReelCommitments(
+  job: JobResponse,
+  reels: Map<string, ReelResponse>,
+): { reel: ReelResponse; labels: string[] }[] {
+  const byId = new Map<string, string[]>()
+  for (const ref of reelSideRefs(job)) {
+    byId.set(ref.reelId, [...(byId.get(ref.reelId) ?? []), ref.label])
+  }
+  const result: { reel: ReelResponse; labels: string[] }[] = []
+  for (const [reelId, labels] of byId) {
+    const reel = reels.get(reelId)
+    if (reel && reel.state === 'NEW') result.push({ reel, labels })
+  }
+  return result
 }
 
 export default function JobDetailPage() {
@@ -36,10 +80,13 @@ export default function JobDetailPage() {
   const [customer, setCustomer] = useState<CustomerResponse | null>(null)
   const [racket, setRacket] = useState<RacketResponse | null>(null)
   const [reelNames, setReelNames] = useState<Map<string, string>>(new Map())
+  const [reels, setReels] = useState<Map<string, ReelResponse>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const [advancing, setAdvancing] = useState(false)
+  const [showCommit, setShowCommit] = useState(false)
+  const [committing, setCommitting] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -57,15 +104,26 @@ export default function JobDetailPage() {
       ])
       setCustomer(cust)
       setRacket(rack)
-      const reelIds = [j.mains.reelId, j.crosses?.reelId].filter(Boolean) as string[]
+      const reelIds = referencedReelIds(j)
       const entries = await Promise.all(
         reelIds.map((rid) =>
           getReel(token, rid)
-            .then((r) => [rid, `${r.brand} ${r.model} · ${r.gauge} mm`] as const)
-            .catch(() => [rid, 'Reel'] as const),
+            .then((r) => [rid, r] as const)
+            .catch(() => [rid, null] as const),
         ),
       )
-      setReelNames(new Map(entries))
+      const reelMap = new Map<string, ReelResponse>()
+      const nameMap = new Map<string, string>()
+      for (const [rid, r] of entries) {
+        if (r) {
+          reelMap.set(rid, r)
+          nameMap.set(rid, `${r.brand} ${r.model} · ${r.gauge} mm`)
+        } else {
+          nameMap.set(rid, 'Reel')
+        }
+      }
+      setReels(reelMap)
+      setReelNames(nameMap)
     } catch {
       setError('Job not found.')
     } finally {
@@ -77,10 +135,8 @@ export default function JobDetailPage() {
     load()
   }, [load])
 
-  async function handleAdvance() {
-    if (!job || !id) return
-    const next = nextStage(job.stage)
-    if (!next) return
+  async function advanceOnly(next: JobResponse['stage']) {
+    if (!id) return
     setAdvancing(true)
     try {
       const updated = await changeJobStage(token, id, next)
@@ -90,6 +146,83 @@ export default function JobDetailPage() {
       showToast('Failed to advance the job.', 'error')
     } finally {
       setAdvancing(false)
+    }
+  }
+
+  async function handleAdvance() {
+    if (!job || !id) return
+    const next = nextStage(job.stage)
+    if (!next) return
+    // Starting a Job (entering In Progress) commits its New Reels to In Use —
+    // gate the advance behind a confirmation. See ADR 0008. Any other
+    // transition advances directly.
+    if (next === 'IN_PROGRESS' && newReelCommitments(job, reels).length > 0) {
+      setShowCommit(true)
+      return
+    }
+    await advanceOnly(next)
+  }
+
+  /** Refresh the cached state of the given Reels from the server (no spinner). */
+  async function syncReels(reelIds: string[]) {
+    const entries = await Promise.all(
+      reelIds.map((rid) =>
+        getReel(token, rid)
+          .then((r) => [rid, r] as const)
+          .catch(() => null),
+      ),
+    )
+    setReels((prev) => {
+      const next = new Map(prev)
+      for (const e of entries) if (e) next.set(e[0], e[1])
+      return next
+    })
+  }
+
+  /**
+   * Commit the Job's New Reels and start it, as one all-or-nothing act:
+   * flip every New Reel to In Use, then advance the stage. Any failure reverts
+   * the Reels already flipped, so nothing changes. See ADR 0008.
+   */
+  async function handleConfirmCommit() {
+    if (!job || !id) return
+    const commitments = newReelCommitments(job, reels)
+    const reelIds = referencedReelIds(job)
+    setCommitting(true)
+    const flipped: ReelResponse[] = []
+    try {
+      for (const { reel } of commitments) {
+        await changeReelState(token, reel.id, 'IN_USE')
+        flipped.push(reel)
+      }
+      const updated = await changeJobStage(token, id, 'IN_PROGRESS')
+      setJob(updated)
+      setShowCommit(false)
+      const n = flipped.length
+      showToast(`Started · ${n} reel${n > 1 ? 's' : ''} marked In Use`)
+    } catch {
+      // Compensate: roll back every Reel we flipped so nothing changed.
+      const revertFailed: ReelResponse[] = []
+      for (const reel of flipped) {
+        try {
+          await changeReelState(token, reel.id, 'NEW')
+        } catch {
+          revertFailed.push(reel)
+        }
+      }
+      setShowCommit(false)
+      if (revertFailed.length > 0) {
+        showToast(
+          `Couldn't start the job, and ${revertFailed.length} reel${revertFailed.length > 1 ? 's are' : ' is'} still In Use — check the Strings page.`,
+          'error',
+        )
+      } else {
+        showToast("Couldn't start the job — no reels were changed. Please try again.", 'error')
+      }
+    } finally {
+      setCommitting(false)
+      // Re-sync Reel state regardless of outcome so the cache matches reality.
+      await syncReels(reelIds)
     }
   }
 
@@ -138,6 +271,7 @@ export default function JobDetailPage() {
   const racketName = racket ? `${racket.brand} ${racket.model}` : '…'
   const currentIndex = JOB_STAGES.indexOf(job.stage)
   const next = nextStage(job.stage)
+  const commitReels = newReelCommitments(job, reels)
 
   return (
     <>
@@ -156,7 +290,7 @@ export default function JobDetailPage() {
         </div>
         <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
           {next && (
-            <button className="btn btn-primary" onClick={handleAdvance} disabled={advancing}>
+            <button className="btn btn-primary" onClick={handleAdvance} disabled={advancing || committing}>
               {advancing ? 'Advancing…' : `Advance to ${JOB_STAGE_LABELS[next]}`}
               {!advancing && <ArrowRight size={16} />}
             </button>
@@ -298,6 +432,47 @@ export default function JobDetailPage() {
           </div>
         </div>
       </div>
+
+      {showCommit && (
+        <div className="modal-overlay open">
+          <div className="modal">
+            <div className="modal-header">
+              <span className="modal-title">Mark {commitReels.length > 1 ? 'reels' : 'reel'} as In Use?</span>
+            </div>
+            <div style={{ padding: 'var(--sp-2) 0 var(--sp-4)', fontSize: 'var(--text-sm)', color: 'var(--fg)' }}>
+              Starting this job draws from {commitReels.length > 1 ? 'these new reels' : 'this new reel'}:
+              <ul
+                style={{
+                  margin: 'var(--sp-3) 0 0',
+                  paddingInlineStart: 'var(--sp-5)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--sp-1)',
+                }}
+              >
+                {commitReels.map(({ reel, labels }) => (
+                  <li key={reel.id}>
+                    <strong>{reel.brand} {reel.model}</strong>
+                    <span style={{ color: 'var(--fg-muted)' }}> · {reel.gauge} mm · {labels.join(' & ')}</span>
+                  </li>
+                ))}
+              </ul>
+              <p style={{ margin: 'var(--sp-4) 0 0', color: 'var(--fg-muted)' }}>
+                {commitReels.length > 1 ? "They'll" : "It'll"} move from New to In Use, and the job will advance to In
+                Progress.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setShowCommit(false)} disabled={committing}>
+                Not now
+              </button>
+              <button className="btn btn-primary" onClick={handleConfirmCommit} disabled={committing}>
+                {committing ? 'Starting…' : 'Mark In Use & start'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDelete && (
         <div className="modal-overlay open">
