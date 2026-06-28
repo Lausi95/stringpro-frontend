@@ -195,7 +195,7 @@ export default function ReelFormModal({ mode, initial, onClose, onSaved }: ReelF
                 className="input input-mono"
                 placeholder="32.00"
                 min="0"
-                step="0.50"
+                step="0.01"
                 required
                 value={form.cost}
                 onChange={(e) => set('cost', e.target.value)}
