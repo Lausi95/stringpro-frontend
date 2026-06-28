@@ -884,6 +884,41 @@ input, select, textarea { font: inherit; }
   .form-grid-2 { grid-template-columns: 1fr; }
   .data-table th:nth-child(n+5), .data-table td:nth-child(n+5) { display: none; }
 
+  /* Dashboard jobs table → stacked cards (jobs-only; other tables keep the
+     condensed-column behavior above). One outer card, rows divided by a
+     hairline; each job laid out as header-row + meta via CSS grid. Price (col
+     5) and the View action (col 6) stay hidden via the generic rule above. */
+  .jobs-table, .jobs-table tbody { display: block; }
+  .jobs-table thead { display: none; }
+  .jobs-table .job-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: var(--sp-2);
+    row-gap: 2px;
+    padding: var(--sp-4);
+    border-bottom: 1px solid var(--border);
+  }
+  .jobs-table tbody tr.job-row:last-child { border-bottom: 0; }
+  .jobs-table .job-row td { display: block; padding: 0; border: 0; }
+  .jobs-table .job-row td:nth-child(n+5) { display: none; } /* price + View action hidden on phone */
+  .jobs-table .job-row td:nth-child(1) { grid-column: 1; grid-row: 1; }                 /* customer · racket */
+  .jobs-table .job-row td:nth-child(4) { grid-column: 2; grid-row: 1; justify-self: end; align-self: start; } /* stage badge */
+  .jobs-table .job-row td:nth-child(2) { grid-column: 1 / -1; grid-row: 2; margin-top: 2px; }                 /* strings · tension */
+  .jobs-table .job-row td:nth-child(3) { grid-column: 1 / -1; grid-row: 3; white-space: nowrap; }            /* due */
+  .jobs-table .job-row td:nth-child(3) .cell-mono::before { content: "Due "; }
+
+  /* Filter tabs → swipeable strip: the strip scrolls, never the page */
+  .filter-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+            mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+  }
+  .filter-tabs::-webkit-scrollbar { display: none; }
+  .filter-tab { white-space: nowrap; flex: 0 0 auto; }
+
   /* Payments: drop Stage + Due on mobile, but keep the record-payment action
      visible (override the generic nth-child(n+5) hide above — the .actions-col
      selector below is specificity (0,3,1) vs the generic rule's (0,2,1)). */

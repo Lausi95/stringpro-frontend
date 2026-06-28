@@ -197,7 +197,7 @@ export default function HomePage() {
         )}
 
         <div className="data-table-wrap">
-          <table className="data-table">
+          <table className="data-table jobs-table">
             <thead>
               <tr>
                 <th>Customer · Racket</th>
@@ -228,7 +228,7 @@ export default function HomePage() {
                 </tr>
               ) : (
                 jobs.map((job) => (
-                  <tr key={job.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/jobs/${job.id}`)}>
+                  <tr key={job.id} className="job-row" style={{ cursor: 'pointer' }} onClick={() => navigate(`/jobs/${job.id}`)}>
                     <td>
                       <div className="cell-primary">{customers.current.get(job.customerId) ?? '…'}</div>
                       <div className="cell-secondary">{rackets.current.get(job.racketId) ?? '…'}</div>
