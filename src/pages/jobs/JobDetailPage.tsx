@@ -17,6 +17,7 @@ import {
   JOB_STAGES,
   JOB_STAGE_LABELS,
   JOB_STAGE_BADGE_CLASS,
+  TERMINAL_STAGE,
   type JobResponse,
   type CustomerResponse,
   type RacketResponse,
@@ -74,6 +75,37 @@ function newReelCommitments(
   return result
 }
 
+/**
+ * The Reels a Job draws from that are already `USED_UP` — the ones that must be
+ * swapped for a live Reel before the Job can start. See ADR 0010. Deduped by
+ * Reel, collecting the side label(s) each Reel sits on. A Reel that failed to
+ * load (absent from the map) is not returned here; unknown state is handled
+ * separately (it blocks the start — see `unknownReelIds`).
+ */
+function usedUpReelSwaps(
+  job: JobResponse,
+  reels: Map<string, ReelResponse>,
+): { reel: ReelResponse; labels: string[] }[] {
+  const byId = new Map<string, string[]>()
+  for (const ref of reelSideRefs(job)) {
+    byId.set(ref.reelId, [...(byId.get(ref.reelId) ?? []), ref.label])
+  }
+  const result: { reel: ReelResponse; labels: string[] }[] = []
+  for (const [reelId, labels] of byId) {
+    const reel = reels.get(reelId)
+    if (reel && reel.state === 'USED_UP') result.push({ reel, labels })
+  }
+  return result
+}
+
+/**
+ * Referenced Reel ids whose state we couldn't read (absent from the map). The
+ * start gate blocks on these rather than assuming they're usable — see ADR 0010.
+ */
+function unknownReelIds(job: JobResponse, reels: Map<string, ReelResponse>): string[] {
+  return referencedReelIds(job).filter((rid) => !reels.has(rid))
+}
+
 /** Distinct Reels a Job draws from, with the side label(s) each sits on. */
 function reelRefsByReel(job: JobResponse): { reelId: string; labels: string[] }[] {
   const byId = new Map<string, string[]>()
@@ -117,6 +149,43 @@ function toUpdateRequest(job: JobResponse): UpdateJobRequest {
 const reelDisplayName = (r: ReelResponse) => `${r.brand} ${r.model} · ${r.gauge} mm`
 
 /**
+ * Build the Reel-swap rewrite payload (ADR 0010): each String Side whose Reel
+ * is in `swaps` (deadReelId → replacementReelId) is re-pointed at the
+ * replacement Reel while **keeping its existing String Fee** — the agreed price
+ * is preserved, never re-derived from the replacement Reel. Mono stays Mono and
+ * Hybrid stays Hybrid (only the reel id changes). `notes` is passed through with
+ * the auto-note already appended.
+ */
+function buildSwapRequest(
+  job: JobResponse,
+  swaps: Map<string, string>,
+  notes: string | undefined,
+): UpdateJobRequest {
+  const swapSide = (side: StringSideResponse): StringSideRequest => {
+    if (side.type === 'REEL' && side.reelId && swaps.has(side.reelId)) {
+      return { type: 'REEL', reelId: swaps.get(side.reelId)!, stringFee: side.stringFee }
+    }
+    return buildSideRequest(side)
+  }
+  const base = {
+    dueDate: job.dueDate,
+    notes,
+    mainsTension: job.mainsTension,
+    crossesTension: job.crossesTension,
+    serviceFee: job.serviceFee,
+  }
+  if (!job.hybrid) {
+    return { ...base, hybrid: false, mains: swapSide(job.mains) }
+  }
+  return {
+    ...base,
+    hybrid: true,
+    mains: swapSide(job.mains),
+    ...(job.crosses ? { crosses: swapSide(job.crosses) } : {}),
+  }
+}
+
+/**
  * One reversible step of the Done-transition saga (ADR 0009): `do` applies it,
  * `undo` compensates. Steps run in order; on any failure the completed steps
  * are undone in reverse so nothing changed.
@@ -141,8 +210,11 @@ export default function JobDetailPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [advancing, setAdvancing] = useState(false)
-  const [showCommit, setShowCommit] = useState(false)
-  const [committing, setCommitting] = useState(false)
+  // Unified start gate (ADR 0008 + 0010): commit New Reels and swap Used-up ones.
+  const [showStart, setShowStart] = useState(false)
+  const [starting, setStarting] = useState(false)
+  // Used-up reel id → chosen replacement reel id (ADR 0010 swap).
+  const [swapChoices, setSwapChoices] = useState<Map<string, string>>(new Map())
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -206,6 +278,28 @@ export default function JobDetailPage() {
     load()
   }, [load])
 
+  // Load replacement-reel candidates when the start gate opens with a Used-up
+  // Reel to swap (ADR 0010). Shares `availReels` with the Done prompt — only
+  // one modal is open at a time.
+  useEffect(() => {
+    if (!showStart || !job || usedUpReelSwaps(job, reels).length === 0) return
+    let cancelled = false
+    setAvailLoading(true)
+    listReels(token, { size: 200 })
+      .then((p) => {
+        if (!cancelled) setAvailReels(p.content)
+      })
+      .catch(() => {
+        if (!cancelled) setAvailReels([])
+      })
+      .finally(() => {
+        if (!cancelled) setAvailLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [showStart, token, job, reels])
+
   // Load substitute-reel candidates when the Done prompt opens for a Mono Job
   // (the only case that can need a substitute). See ADR 0009.
   useEffect(() => {
@@ -245,12 +339,27 @@ export default function JobDetailPage() {
     if (!job || !id) return
     const next = nextStage(job.stage)
     if (!next) return
-    // Starting a Job (entering In Progress) commits its New Reels to In Use —
-    // gate the advance behind a confirmation. See ADR 0008. Any other
-    // transition advances directly.
-    if (next === 'IN_PROGRESS' && newReelCommitments(job, reels).length > 0) {
-      setShowCommit(true)
-      return
+    // Starting a Job (entering In Progress) runs the unified start gate: swap out
+    // any Used-up Reel (ADR 0010) and commit any New Reel (ADR 0008), then
+    // advance — as one all-or-nothing act. Any other transition advances directly.
+    if (next === 'IN_PROGRESS') {
+      // Block if we can't confirm a referenced Reel's state — never start over a
+      // Reel we couldn't read (ADR 0010).
+      const unknown = unknownReelIds(job, reels)
+      if (unknown.length > 0) {
+        showToast(
+          `Couldn't read the state of ${unknown.length} reel${unknown.length > 1 ? 's' : ''} — refresh and try again.`,
+          'error',
+        )
+        return
+      }
+      const swaps = usedUpReelSwaps(job, reels)
+      const commits = newReelCommitments(job, reels)
+      if (swaps.length > 0 || commits.length > 0) {
+        setSwapChoices(new Map())
+        setShowStart(true)
+        return
+      }
     }
     // Finishing a Job (entering Done) prompts about Reel exhaustion, and on a
     // Mono Job a mid-racket run-out splits to a substitute Reel. See ADR 0009.
@@ -266,66 +375,111 @@ export default function JobDetailPage() {
     await advanceOnly(next)
   }
 
-  /** Refresh the cached state of the given Reels from the server (no spinner). */
-  async function syncReels(reelIds: string[]) {
-    const entries = await Promise.all(
-      reelIds.map((rid) =>
-        getReel(token, rid)
-          .then((r) => [rid, r] as const)
-          .catch(() => null),
-      ),
-    )
-    setReels((prev) => {
-      const next = new Map(prev)
-      for (const e of entries) if (e) next.set(e[0], e[1])
-      return next
-    })
-  }
-
   /**
-   * Commit the Job's New Reels and start it, as one all-or-nothing act:
-   * flip every New Reel to In Use, then advance the stage. Any failure reverts
-   * the Reels already flipped, so nothing changes. See ADR 0008.
+   * Start the Job (advance to In Progress) as one all-or-nothing act: swap out
+   * any Used-up Reel for its chosen replacement (preserving the agreed price,
+   * ADR 0010), commit every New Reel — originals and New replacements — to In
+   * Use (ADR 0008), then advance the stage last. Any failure rolls back the
+   * completed steps in reverse so nothing changed.
    */
-  async function handleConfirmCommit() {
+  async function handleConfirmStart() {
     if (!job || !id) return
+    const swaps = usedUpReelSwaps(job, reels)
     const commitments = newReelCommitments(job, reels)
-    const reelIds = referencedReelIds(job)
-    setCommitting(true)
-    const flipped: ReelResponse[] = []
-    try {
-      for (const { reel } of commitments) {
-        await changeReelState(token, reel.id, 'IN_USE')
-        flipped.push(reel)
+    const steps: SagaStep[] = []
+    let finalJob: JobResponse | null = null
+
+    // 1. Swap out Used-up Reels: one Job rewrite, fees preserved, with an
+    //    auto-note recording the swap (the only trace once persisted).
+    const swapMap = new Map<string, string>()
+    if (swaps.length > 0) {
+      const clauses: string[] = []
+      for (const { reel, labels } of swaps) {
+        const replId = swapChoices.get(reel.id)
+        if (!replId) return // guarded by the confirm button; defensive
+        swapMap.set(reel.id, replId)
+        const repl = availReels.find((r) => r.id === replId)
+        const replName = repl ? `${repl.brand} ${repl.model}` : 'another reel'
+        clauses.push(
+          `${reel.brand} ${reel.model} (${labels.join(' & ')}) was used up; restrung from ${replName}.`,
+        )
       }
-      const updated = await changeJobStage(token, id, 'IN_PROGRESS')
-      setJob(updated)
-      setShowCommit(false)
-      const n = flipped.length
-      showToast(`Started · ${n} reel${n > 1 ? 's' : ''} marked In Use`)
+      const note = `Reel swap: ${clauses.join(' ')}`
+      const newNotes = job.notes ? `${job.notes}\n${note}` : note
+      const original = toUpdateRequest(job)
+      const rewrite = buildSwapRequest(job, swapMap, newNotes)
+      steps.push({
+        do: async () => {
+          await updateJob(token, id, rewrite)
+        },
+        undo: async () => {
+          await updateJob(token, id, original)
+        },
+      })
+    }
+
+    // 2. Commit every New Reel that will be strung from: the Job's existing New
+    //    Reels plus any New replacement Reel. Deduped so we never double-flip.
+    const commitIds = new Set<string>()
+    for (const { reel } of commitments) commitIds.add(reel.id)
+    for (const replId of swapMap.values()) {
+      if (availReels.find((r) => r.id === replId)?.state === 'NEW') commitIds.add(replId)
+    }
+    for (const reelId of commitIds) {
+      steps.push({
+        do: async () => {
+          await changeReelState(token, reelId, 'IN_USE')
+        },
+        undo: async () => {
+          await changeReelState(token, reelId, 'NEW')
+        },
+      })
+    }
+
+    // 3. Advance the stage — last, so a failure is caught before the Job moves.
+    steps.push({
+      do: async () => {
+        finalJob = await changeJobStage(token, id, 'IN_PROGRESS')
+      },
+      undo: async () => {},
+    })
+
+    setStarting(true)
+    const completed: SagaStep[] = []
+    try {
+      for (const step of steps) {
+        await step.do()
+        completed.push(step)
+      }
+      setShowStart(false)
+      if (finalJob) setJob(finalJob)
+      const parts: string[] = []
+      if (swaps.length > 0) parts.push(`${swaps.length} reel${swaps.length > 1 ? 's' : ''} swapped`)
+      if (commitIds.size > 0) parts.push(`${commitIds.size} marked In Use`)
+      showToast(`Started${parts.length ? ` · ${parts.join(', ')}` : ''}`)
     } catch {
-      // Compensate: roll back every Reel we flipped so nothing changed.
-      const revertFailed: ReelResponse[] = []
-      for (const reel of flipped) {
+      // Compensate: undo completed steps in reverse so nothing changed.
+      let revertFailed = 0
+      for (const step of completed.reverse()) {
         try {
-          await changeReelState(token, reel.id, 'NEW')
+          await step.undo()
         } catch {
-          revertFailed.push(reel)
+          revertFailed++
         }
       }
-      setShowCommit(false)
-      if (revertFailed.length > 0) {
+      setShowStart(false)
+      if (revertFailed > 0) {
         showToast(
-          `Couldn't start the job, and ${revertFailed.length} reel${revertFailed.length > 1 ? 's are' : ' is'} still In Use — check the Strings page.`,
+          `Couldn't start the job, and ${revertFailed} change${revertFailed > 1 ? 's' : ''} couldn't be rolled back — check the Strings page.`,
           'error',
         )
       } else {
-        showToast("Couldn't start the job — no reels were changed. Please try again.", 'error')
+        showToast("Couldn't start the job — nothing was changed. Please try again.", 'error')
       }
     } finally {
-      setCommitting(false)
-      // Re-sync Reel state regardless of outcome so the cache matches reality.
-      await syncReels(reelIds)
+      setStarting(false)
+      // Re-sync Reel caches (the swap may have changed which Reels are referenced).
+      await refreshReelMaps(finalJob ?? job)
     }
   }
 
@@ -522,7 +676,12 @@ export default function JobDetailPage() {
   const racketName = racket ? `${racket.brand} ${racket.model}` : '…'
   const currentIndex = JOB_STAGES.indexOf(job.stage)
   const next = nextStage(job.stage)
+
+  // Start-gate derived values (ADR 0008 commit + ADR 0010 swap).
   const commitReels = newReelCommitments(job, reels)
+  const swapReels = usedUpReelSwaps(job, reels)
+  const startCandidates = availReels.filter((r) => r.state !== 'USED_UP')
+  const startValid = swapReels.every(({ reel }) => swapChoices.get(reel.id))
 
   // Done-prompt derived values (ADR 0009).
   const isMono = !job.hybrid
@@ -551,7 +710,7 @@ export default function JobDetailPage() {
         </div>
         <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
           {next && (
-            <button className="btn btn-primary" onClick={handleAdvance} disabled={advancing || committing}>
+            <button className="btn btn-primary" onClick={handleAdvance} disabled={advancing || starting}>
               {advancing ? 'Advancing…' : `Advance to ${JOB_STAGE_LABELS[next]}`}
               {!advancing && <ArrowRight size={16} />}
             </button>
@@ -583,10 +742,14 @@ export default function JobDetailPage() {
           </div>
           <div className="stage-bar">
             {JOB_STAGES.map((stage, i) => {
-              const cls = i < currentIndex ? 'done' : i === currentIndex ? 'active' : ''
+              // At the terminal Stage the Job is finished, so the current step renders
+              // as done (ticked) too — not as a pending "you-are-here" dot. See CONTEXT.md.
+              const atTerminal = job.stage === TERMINAL_STAGE
+              const isDone = i < currentIndex || (i === currentIndex && atTerminal)
+              const cls = isDone ? 'done' : i === currentIndex ? 'active' : ''
               return (
                 <div key={stage} className={`stage-step ${cls}`}>
-                  <div className="stage-dot">{i < currentIndex && <Check size={13} strokeWidth={2.5} />}</div>
+                  <div className="stage-dot">{isDone && <Check size={13} strokeWidth={2.5} />}</div>
                   <div className="stage-label">{JOB_STAGE_LABELS[stage]}</div>
                 </div>
               )
@@ -694,41 +857,110 @@ export default function JobDetailPage() {
         </div>
       </div>
 
-      {showCommit && (
+      {showStart && (
         <div className="modal-overlay open">
           <div className="modal">
             <div className="modal-header">
-              <span className="modal-title">Mark {commitReels.length > 1 ? 'reels' : 'reel'} as In Use?</span>
+              <span className="modal-title">
+                {swapReels.length > 0
+                  ? 'Start job — replace used-up reels'
+                  : `Mark ${commitReels.length > 1 ? 'reels' : 'reel'} as In Use?`}
+              </span>
             </div>
             <div style={{ padding: 'var(--sp-2) 0 var(--sp-4)', fontSize: 'var(--text-sm)', color: 'var(--fg)' }}>
-              Starting this job draws from {commitReels.length > 1 ? 'these new reels' : 'this new reel'}:
-              <ul
-                style={{
-                  margin: 'var(--sp-3) 0 0',
-                  paddingInlineStart: 'var(--sp-5)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 'var(--sp-1)',
-                }}
-              >
-                {commitReels.map(({ reel, labels }) => (
-                  <li key={reel.id}>
-                    <strong>{reel.brand} {reel.model}</strong>
-                    <span style={{ color: 'var(--fg-muted)' }}> · {reel.gauge} mm · {labels.join(' & ')}</span>
-                  </li>
-                ))}
-              </ul>
-              <p style={{ margin: 'var(--sp-4) 0 0', color: 'var(--fg-muted)' }}>
-                {commitReels.length > 1 ? "They'll" : "It'll"} move from New to In Use, and the job will advance to In
-                Progress.
-              </p>
+              {/* Swap section: Used-up Reels must be replaced before starting (ADR 0010). */}
+              {swapReels.length > 0 && (
+                <div style={{ marginBottom: commitReels.length > 0 ? 'var(--sp-6)' : 0 }}>
+                  <p style={{ margin: '0 0 var(--sp-3)' }}>
+                    {swapReels.length > 1 ? 'These reels are' : 'This reel is'} used up and must be replaced to start
+                    the job. The agreed price stays the same.
+                  </p>
+                  {availLoading ? (
+                    <div style={{ color: 'var(--fg-muted)' }}>Loading reels…</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)' }}>
+                      {swapReels.map(({ reel, labels }) => {
+                        const candidates = startCandidates.filter((r) => r.id !== reel.id)
+                        return (
+                          <div key={reel.id}>
+                            <div style={{ marginBottom: 'var(--sp-2)' }}>
+                              <strong>{reel.brand} {reel.model}</strong>
+                              <span style={{ color: 'var(--fg-muted)' }}>
+                                {' '}· {reel.gauge} mm · {labels.join(' & ')} · used up
+                              </span>
+                            </div>
+                            {candidates.length === 0 ? (
+                              <div style={{ color: 'var(--status-overdue-fg)' }}>
+                                No available reel to replace this — add a reel first.
+                              </div>
+                            ) : (
+                              <select
+                                className="select"
+                                value={swapChoices.get(reel.id) ?? ''}
+                                onChange={(e) =>
+                                  setSwapChoices((prev) => {
+                                    const nextMap = new Map(prev)
+                                    if (e.target.value) nextMap.set(reel.id, e.target.value)
+                                    else nextMap.delete(reel.id)
+                                    return nextMap
+                                  })
+                                }
+                                disabled={starting}
+                              >
+                                <option value="">Replace with…</option>
+                                {candidates.map((r) => (
+                                  <option key={r.id} value={r.id}>
+                                    {reelDisplayName(r)} · {r.state === 'NEW' ? 'New' : 'In Use'}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Commit section: New Reels move to In Use on start (ADR 0008). */}
+              {commitReels.length > 0 && (
+                <div>
+                  <p style={{ margin: 0 }}>
+                    Starting this job draws from {commitReels.length > 1 ? 'these new reels' : 'this new reel'}:
+                  </p>
+                  <ul
+                    style={{
+                      margin: 'var(--sp-3) 0 0',
+                      paddingInlineStart: 'var(--sp-5)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 'var(--sp-1)',
+                    }}
+                  >
+                    {commitReels.map(({ reel, labels }) => (
+                      <li key={reel.id}>
+                        <strong>{reel.brand} {reel.model}</strong>
+                        <span style={{ color: 'var(--fg-muted)' }}> · {reel.gauge} mm · {labels.join(' & ')}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p style={{ margin: 'var(--sp-4) 0 0', color: 'var(--fg-muted)' }}>
+                    {commitReels.length > 1 ? "They'll" : "It'll"} move from New to In Use.
+                  </p>
+                </div>
+              )}
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setShowCommit(false)} disabled={committing}>
+              <button className="btn btn-ghost" onClick={() => setShowStart(false)} disabled={starting}>
                 Not now
               </button>
-              <button className="btn btn-primary" onClick={handleConfirmCommit} disabled={committing}>
-                {committing ? 'Starting…' : 'Mark In Use & start'}
+              <button
+                className="btn btn-primary"
+                onClick={handleConfirmStart}
+                disabled={starting || !startValid}
+              >
+                {starting ? 'Starting…' : swapReels.length > 0 ? 'Replace & start' : 'Mark In Use & start'}
               </button>
             </div>
           </div>

@@ -118,6 +118,13 @@ export const JOB_STAGES: JobStage[] = [
   'RETURNED',
 ]
 
+/**
+ * The terminal Stage: being *at* it means the Job is finished, not pending.
+ * Progress indicators render this Stage (and all prior steps) as done/ticked.
+ * See CONTEXT.md — "Rendering a Stage as pending vs. complete".
+ */
+export const TERMINAL_STAGE: JobStage = 'RETURNED'
+
 export const JOB_STAGE_LABELS: Record<JobStage, string> = {
   ANNOUNCED: 'Announced',
   PICKED_UP: 'Picked Up',
