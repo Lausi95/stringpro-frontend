@@ -378,6 +378,13 @@ input, select, textarea { font: inherit; }
 .badge-overdue   { background: var(--status-overdue-bg);  color: var(--status-overdue-fg); }
 .badge-tip       { background: var(--status-done-bg);     color: var(--status-done-fg); }
 
+/* ─── Job stage badges (lifecycle: Announced → Picked Up → In Progress → Done → Returned) ─── */
+.badge-announced    { background: var(--status-pending-bg);  color: var(--status-pending-fg); }
+.badge-picked-up    { background: var(--status-ready-bg);    color: var(--status-ready-fg); }
+.badge-in-progress  { background: var(--status-progress-bg); color: var(--status-progress-fg); }
+/* DONE reuses .badge-done above */
+.badge-returned     { background: var(--clay-100);           color: var(--clay-700); border: 1px solid var(--clay-300); }
+
 /* ─── payment modal result preview ───────────────── */
 .pay-result {
   border-radius: var(--r-md);

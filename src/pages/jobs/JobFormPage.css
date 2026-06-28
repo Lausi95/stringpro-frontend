@@ -1,0 +1,86 @@
+.job-form-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .job-form-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.job-form-aside {
+  position: sticky;
+  top: var(--sp-8);
+}
+
+.form-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+/* Customer typeahead */
+.customer-picker {
+  position: relative;
+}
+
+.customer-picker-results {
+  position: absolute;
+  z-index: 20;
+  inset-inline: 0;
+  top: calc(100% + 4px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-md);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.customer-picker-option {
+  display: block;
+  width: 100%;
+  text-align: start;
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  color: var(--fg);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.customer-picker-option:hover {
+  background: var(--surface-tinted);
+  color: var(--accent);
+}
+
+.customer-picker-empty {
+  padding: var(--sp-3);
+  font-size: var(--text-sm);
+  color: var(--fg-muted);
+}
+
+/* Selected customer/racket chip (edit mode / chosen) */
+.locked-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-tinted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: var(--text-sm);
+}
+
+.locked-value .locked-name {
+  font-weight: 500;
+  color: var(--fg);
+}

@@ -106,9 +106,10 @@ All design tokens are CSS custom properties in `shared.css`. No raw hex values i
 - String blue: `--string-500`
 
 **Status token classes** (use on badges, not raw colors):
-- `.badge-queued` / `.badge-progress` / `.badge-ready` / `.badge-done` / `.badge-paid` / `.badge-unpaid` / `.badge-overdue`
+- Job stages: `.badge-announced` / `.badge-picked-up` / `.badge-in-progress` / `.badge-done` / `.badge-returned`
+- Payment/other (currently unused): `.badge-paid` / `.badge-unpaid` / `.badge-overdue`
 
-**Job lifecycle:** Queued → In Progress → Ready → Done → Paid
+**Job lifecycle (matches the backend `stage` enum):** Announced → Picked Up → In Progress → Done → Returned. Forward-only, never backward. **There is no `PAID` stage** — payment is a separate, currently-unmodelled concern. See `CONTEXT.md` for the canonical definitions.
 
 **App shell layout:**
 - Fixed sidebar: `--sidebar-w: 240px` at desktop, collapses to `48px` at `≤1023px`, hidden at `≤639px`

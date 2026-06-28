@@ -107,6 +107,109 @@ export interface SettingsFormData {
   address: string
 }
 
+export type JobStage = 'ANNOUNCED' | 'PICKED_UP' | 'IN_PROGRESS' | 'DONE' | 'RETURNED'
+
+/** The five Job stages in lifecycle order. Progress is forward-only. */
+export const JOB_STAGES: JobStage[] = [
+  'ANNOUNCED',
+  'PICKED_UP',
+  'IN_PROGRESS',
+  'DONE',
+  'RETURNED',
+]
+
+export const JOB_STAGE_LABELS: Record<JobStage, string> = {
+  ANNOUNCED: 'Announced',
+  PICKED_UP: 'Picked Up',
+  IN_PROGRESS: 'In Progress',
+  DONE: 'Done',
+  RETURNED: 'Returned',
+}
+
+/** CSS badge class for each stage (defined in shared.css). */
+export const JOB_STAGE_BADGE_CLASS: Record<JobStage, string> = {
+  ANNOUNCED: 'badge-announced',
+  PICKED_UP: 'badge-picked-up',
+  IN_PROGRESS: 'badge-in-progress',
+  DONE: 'badge-done',
+  RETURNED: 'badge-returned',
+}
+
+/** The next stage in the forward-only lifecycle, or null when at the terminal stage. */
+export function nextStage(stage: JobStage): JobStage | null {
+  const i = JOB_STAGES.indexOf(stage)
+  return i >= 0 && i < JOB_STAGES.length - 1 ? JOB_STAGES[i + 1] : null
+}
+
+/** Where the String on a side comes from: a Reel from inventory, or the Customer's own string. */
+export type StringSideType = 'REEL' | 'OWN'
+
+export interface StringSideRequest {
+  type: StringSideType
+  /** Free-text name when type === 'OWN'. */
+  stringName?: string
+  /** Reel id when type === 'REEL'. */
+  reelId?: string
+  /** String Fee billed for this side. 0 (or omitted) for 'OWN'. */
+  stringFee?: number
+}
+
+export interface StringSideResponse {
+  type: StringSideType
+  stringName?: string
+  reelId?: string
+  stringFee: number
+}
+
+export interface JobResponse {
+  id: string
+  customerId: string
+  racketId: string
+  /** ISO date (yyyy-MM-dd). */
+  dueDate: string
+  notes?: string
+  mainsTension: number
+  crossesTension: number
+  /** true when mains and crosses use different Strings. */
+  hybrid: boolean
+  mains: StringSideResponse
+  /** Absent on mono Jobs (the cross side mirrors the mains). */
+  crosses?: StringSideResponse
+  serviceFee: number
+  totalStringFee: number
+  total: number
+  stage: JobStage
+  createdAt: string
+}
+
+export interface PagedJobResponse {
+  content: JobResponse[]
+  totalElements: number
+  totalPages: number
+  page: number
+  size: number
+}
+
+/**
+ * Create payload. For a mono Job send `mains` only and omit `crosses`
+ * (the backend infers the cross side); set `hybrid: false`.
+ */
+export interface CreateJobRequest {
+  customerId: string
+  racketId: string
+  dueDate: string
+  notes?: string
+  mainsTension: number
+  crossesTension: number
+  hybrid: boolean
+  mains: StringSideRequest
+  crosses?: StringSideRequest
+  serviceFee: number
+}
+
+/** Edit payload. Customer and Racket cannot change after creation. */
+export type UpdateJobRequest = Omit<CreateJobRequest, 'customerId' | 'racketId'>
+
 interface ApiError extends Error {
   status: number
 }
@@ -183,6 +286,12 @@ export async function deleteCustomer(token: string, id: string): Promise<void> {
 export async function listRackets(token: string, customerId: string): Promise<RacketResponse[]> {
   const query = new URLSearchParams({ customerId })
   const res = await fetch(`${API_BASE}/rackets?${query}`, { headers: authHeaders(token) })
+  await throwIfNotOk(res)
+  return res.json()
+}
+
+export async function getRacket(token: string, id: string): Promise<RacketResponse> {
+  const res = await fetch(`${API_BASE}/rackets/${id}`, { headers: authHeaders(token) })
   await throwIfNotOk(res)
   return res.json()
 }
@@ -305,4 +414,79 @@ export async function updateSettings(
   })
   await throwIfNotOk(res)
   return res.json()
+}
+
+export async function listJobs(
+  token: string,
+  params: {
+    page?: number
+    size?: number
+    stage?: JobStage
+    customerId?: string
+    racketId?: string
+    reelId?: string
+  } = {},
+): Promise<PagedJobResponse> {
+  const query = new URLSearchParams()
+  if (params.page !== undefined) query.set('page', String(params.page))
+  if (params.size !== undefined) query.set('size', String(params.size))
+  if (params.stage) query.set('stage', params.stage)
+  if (params.customerId) query.set('customerId', params.customerId)
+  if (params.racketId) query.set('racketId', params.racketId)
+  if (params.reelId) query.set('reelId', params.reelId)
+  const res = await fetch(`${API_BASE}/jobs?${query}`, { headers: authHeaders(token) })
+  await throwIfNotOk(res)
+  return res.json()
+}
+
+export async function getJob(token: string, id: string): Promise<JobResponse> {
+  const res = await fetch(`${API_BASE}/jobs/${id}`, { headers: authHeaders(token) })
+  await throwIfNotOk(res)
+  return res.json()
+}
+
+export async function createJob(token: string, data: CreateJobRequest): Promise<JobResponse> {
+  const res = await fetch(`${API_BASE}/jobs`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(data),
+  })
+  await throwIfNotOk(res)
+  return res.json()
+}
+
+export async function updateJob(
+  token: string,
+  id: string,
+  data: UpdateJobRequest,
+): Promise<JobResponse> {
+  const res = await fetch(`${API_BASE}/jobs/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(token),
+    body: JSON.stringify(data),
+  })
+  await throwIfNotOk(res)
+  return res.json()
+}
+
+export async function changeJobStage(
+  token: string,
+  id: string,
+  stage: JobStage,
+): Promise<JobResponse> {
+  const res = await fetch(`${API_BASE}/jobs/${id}/stage`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify({ stage }),
+  })
+  await throwIfNotOk(res)
+  return res.json()
+}
+
+export async function deleteJob(token: string, id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/jobs/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  })
+  await throwIfNotOk(res)
 }

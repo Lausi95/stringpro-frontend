@@ -104,7 +104,7 @@ export default function CustomerDetailPage() {
           <h1 className="page-title">{fullName}</h1>
         </div>
         <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
-          <Link to="/jobs/new" className="btn btn-primary">
+          <Link to={`/jobs/new?customerId=${id}`} className="btn btn-primary">
             <Plus size={16} />
             New Job
           </Link>
@@ -172,20 +172,26 @@ export default function CustomerDetailPage() {
           ) : (
             <div className="racket-grid">
               {rackets.map((r) => (
-                <button
-                  key={r.id}
-                  className="racket-card"
-                  onClick={() => setRacketModal({ mode: 'edit', racket: r })}
-                >
+                <div key={r.id} className="racket-card" style={{ cursor: 'default' }}>
                   <div className="cell-primary" style={{ marginBottom: 'var(--sp-1)' }}>
                     {r.brand} {r.model}
                   </div>
                   <div className="cell-secondary">
                     Head: {r.headSize} cm² · {r.stringMains}×{r.stringCrosses}
                   </div>
-                  <div className="racket-card-note">{r.notes}</div>
-                  {/* TODO: active-job / last-job badges once jobs API is integrated */}
-                </button>
+                  {r.notes && <div className="racket-card-note">{r.notes}</div>}
+                  <div style={{ display: 'flex', gap: 'var(--sp-2)', marginTop: 'var(--sp-3)' }}>
+                    <button
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => setRacketModal({ mode: 'edit', racket: r })}
+                    >
+                      Edit
+                    </button>
+                    <Link className="btn btn-sm btn-secondary" to={`/jobs/new?customerId=${id}&racketId=${r.id}`}>
+                      String this
+                    </Link>
+                  </div>
+                </div>
               ))}
               <button className="add-racket-card" onClick={() => setRacketModal({ mode: 'create' })}>
                 <Plus size={20} />
