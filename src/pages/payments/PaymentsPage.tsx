@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Euro } from 'lucide-react'
 import { useKeycloakToken } from '../../lib/KeycloakContext'
 import RecordPaymentModal from '../../components/RecordPaymentModal'
 import {
@@ -125,12 +126,12 @@ export default function PaymentsPage() {
         )}
 
         <div className="data-table-wrap">
-          <table className="data-table">
+          <table className="data-table data-table-payments">
             <thead>
               <tr>
                 <th>Customer · Racket</th>
-                <th>Stage</th>
-                <th>Due</th>
+                <th className="col-collapse">Stage</th>
+                <th className="col-collapse">Due</th>
                 <th className="num-col">Balance</th>
                 <th className="actions-col"></th>
               </tr>
@@ -157,12 +158,12 @@ export default function PaymentsPage() {
                         <div className="cell-primary">{customers.current.get(job.customerId) ?? '…'}</div>
                         <div className="cell-secondary">{rackets.current.get(job.racketId) ?? '…'}</div>
                       </td>
-                      <td>
+                      <td className="col-collapse">
                         <span className={`badge ${JOB_STAGE_BADGE_CLASS[job.stage]}`}>
                           {JOB_STAGE_LABELS[job.stage]}
                         </span>
                       </td>
-                      <td>
+                      <td className="col-collapse">
                         <span className="cell-mono">{formatDate(job.dueDate)}</span>
                       </td>
                       <td
@@ -177,8 +178,13 @@ export default function PaymentsPage() {
                         )}
                       </td>
                       <td className="actions-col" onClick={(e) => e.stopPropagation()}>
-                        <button className="btn btn-sm btn-secondary" onClick={() => setPayingJob(job)}>
-                          Record Payment
+                        <button
+                          className="btn btn-sm btn-secondary btn-icon"
+                          onClick={() => setPayingJob(job)}
+                          aria-label="Record payment"
+                          title="Record payment"
+                        >
+                          <Euro />
                         </button>
                       </td>
                     </tr>

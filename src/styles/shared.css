@@ -355,6 +355,9 @@ input, select, textarea { font: inherit; }
 .btn-paid:hover { background: var(--accent-alt-hover); border-color: var(--accent-alt-hover); }
 .btn-sm { padding: 6px var(--sp-3); min-height: 32px; font-size: var(--text-xs); }
 .btn-sm svg { width: 13px; height: 13px; }
+/* icon-only square button — equal sides, glyph centred */
+.btn-icon { justify-content: center; padding-inline: 0; width: 32px; min-width: 32px; }
+.btn-icon svg { width: 15px; height: 15px; }
 
 /* ─── status badges ───────────────────────────────── */
 .badge {
@@ -880,6 +883,13 @@ input, select, textarea { font: inherit; }
   .page-title { font-size: 1.5rem; }
   .form-grid-2 { grid-template-columns: 1fr; }
   .data-table th:nth-child(n+5), .data-table td:nth-child(n+5) { display: none; }
+
+  /* Payments: drop Stage + Due on mobile, but keep the record-payment action
+     visible (override the generic nth-child(n+5) hide above — the .actions-col
+     selector below is specificity (0,3,1) vs the generic rule's (0,2,1)). */
+  .data-table.data-table-payments .col-collapse { display: none; }
+  .data-table.data-table-payments th.actions-col,
+  .data-table.data-table-payments td.actions-col { display: table-cell; }
 
   /* customer detail overview stacks to a single column */
   .customer-overview { grid-template-columns: 1fr; gap: var(--sp-3); }
