@@ -8,8 +8,10 @@ import {
   getCustomer,
   getRacket,
   getReel,
+  listReels,
   changeJobStage,
   changeReelState,
+  updateJob,
   deleteJob,
   nextStage,
   JOB_STAGES,
@@ -20,6 +22,8 @@ import {
   type RacketResponse,
   type ReelResponse,
   type StringSideResponse,
+  type StringSideRequest,
+  type UpdateJobRequest,
 } from '../../lib/api'
 
 const money = (n: number) => `€ ${n.toFixed(2)}`
@@ -70,6 +74,58 @@ function newReelCommitments(
   return result
 }
 
+/** Distinct Reels a Job draws from, with the side label(s) each sits on. */
+function reelRefsByReel(job: JobResponse): { reelId: string; labels: string[] }[] {
+  const byId = new Map<string, string[]>()
+  for (const ref of reelSideRefs(job)) {
+    byId.set(ref.reelId, [...(byId.get(ref.reelId) ?? []), ref.label])
+  }
+  return [...byId].map(([reelId, labels]) => ({ reelId, labels }))
+}
+
+const round2 = (n: number) => Math.round(n * 100) / 100
+
+/** Build an UpdateJobRequest side from a saved response side, preserving its fee. */
+function buildSideRequest(side: StringSideResponse): StringSideRequest {
+  if (side.type === 'OWN') return { type: 'OWN', stringName: side.stringName ?? '', stringFee: 0 }
+  return { type: 'REEL', reelId: side.reelId, stringFee: side.stringFee }
+}
+
+/**
+ * Reconstruct a Job's own UpdateJobRequest — used as the revert payload for the
+ * Reel-substitution rewrite (ADR 0009). A Mono Job omits `crosses` (ADR 0006).
+ */
+function toUpdateRequest(job: JobResponse): UpdateJobRequest {
+  const base = {
+    dueDate: job.dueDate,
+    notes: job.notes,
+    mainsTension: job.mainsTension,
+    crossesTension: job.crossesTension,
+    serviceFee: job.serviceFee,
+  }
+  if (!job.hybrid) {
+    return { ...base, hybrid: false, mains: buildSideRequest(job.mains) }
+  }
+  return {
+    ...base,
+    hybrid: true,
+    mains: buildSideRequest(job.mains),
+    ...(job.crosses ? { crosses: buildSideRequest(job.crosses) } : {}),
+  }
+}
+
+const reelDisplayName = (r: ReelResponse) => `${r.brand} ${r.model} · ${r.gauge} mm`
+
+/**
+ * One reversible step of the Done-transition saga (ADR 0009): `do` applies it,
+ * `undo` compensates. Steps run in order; on any failure the completed steps
+ * are undone in reverse so nothing changed.
+ */
+interface SagaStep {
+  do: () => Promise<void>
+  undo: () => Promise<void>
+}
+
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>()
   const token = useKeycloakToken()
@@ -90,6 +146,21 @@ export default function JobDetailPage() {
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  // Done-transition reel prompt (ADR 0009).
+  const [showDone, setShowDone] = useState(false)
+  const [finishing, setFinishing] = useState(false)
+  // Mono: did the reel string the whole racket? null until answered.
+  const [monoLasted, setMonoLasted] = useState<boolean | null>(null)
+  // Mono + lasted: is that reel now empty?
+  const [monoUsedUp, setMonoUsedUp] = useState(false)
+  // Mono + ran out: the substitute reel chosen for the crosses.
+  const [substituteReelId, setSubstituteReelId] = useState('')
+  // Hybrid: reel ids the Stringer marked used up.
+  const [usedUpReels, setUsedUpReels] = useState<Set<string>>(new Set())
+  // Reels available as a substitute (New/In Use), loaded lazily for the prompt.
+  const [availReels, setAvailReels] = useState<ReelResponse[]>([])
+  const [availLoading, setAvailLoading] = useState(false)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -135,6 +206,27 @@ export default function JobDetailPage() {
     load()
   }, [load])
 
+  // Load substitute-reel candidates when the Done prompt opens for a Mono Job
+  // (the only case that can need a substitute). See ADR 0009.
+  useEffect(() => {
+    if (!showDone || !job || job.hybrid) return
+    let cancelled = false
+    setAvailLoading(true)
+    listReels(token, { size: 200 })
+      .then((p) => {
+        if (!cancelled) setAvailReels(p.content)
+      })
+      .catch(() => {
+        if (!cancelled) setAvailReels([])
+      })
+      .finally(() => {
+        if (!cancelled) setAvailLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [showDone, token, job])
+
   async function advanceOnly(next: JobResponse['stage']) {
     if (!id) return
     setAdvancing(true)
@@ -158,6 +250,17 @@ export default function JobDetailPage() {
     // transition advances directly.
     if (next === 'IN_PROGRESS' && newReelCommitments(job, reels).length > 0) {
       setShowCommit(true)
+      return
+    }
+    // Finishing a Job (entering Done) prompts about Reel exhaustion, and on a
+    // Mono Job a mid-racket run-out splits to a substitute Reel. See ADR 0009.
+    // Only prompt when the Job draws from at least one Reel; OWN-only advances.
+    if (next === 'DONE' && referencedReelIds(job).length > 0) {
+      setMonoLasted(null)
+      setMonoUsedUp(false)
+      setSubstituteReelId('')
+      setUsedUpReels(new Set())
+      setShowDone(true)
       return
     }
     await advanceOnly(next)
@@ -226,6 +329,154 @@ export default function JobDetailPage() {
     }
   }
 
+  /** Refresh both Reel caches (state + display name) for a Job's referenced Reels. */
+  async function refreshReelMaps(j: JobResponse) {
+    const reelIds = referencedReelIds(j)
+    const entries = await Promise.all(
+      reelIds.map((rid) =>
+        getReel(token, rid)
+          .then((r) => [rid, r] as const)
+          .catch(() => [rid, null] as const),
+      ),
+    )
+    setReels((prev) => {
+      const next = new Map(prev)
+      for (const [rid, r] of entries) if (r) next.set(rid, r)
+      return next
+    })
+    setReelNames((prev) => {
+      const next = new Map(prev)
+      for (const [rid, r] of entries) next.set(rid, r ? reelDisplayName(r) : 'Reel')
+      return next
+    })
+  }
+
+  /**
+   * Finish the Job (advance to Done), recording Reel exhaustion and — on a Mono
+   * Job whose Reel ran out mid-racket — a Reel substitution. Runs as an ordered
+   * saga with full compensation: stage advance is last, and any failure rolls
+   * back the completed steps so nothing changed. See ADR 0009.
+   */
+  async function handleConfirmDone() {
+    if (!job || !id) return
+    const isMono = !job.hybrid
+    const steps: SagaStep[] = []
+    let finalJob: JobResponse | null = null
+
+    // Queue a USED_UP transition for a Reel (skipping any already used up).
+    const exhaustReel = (reelId: string) => {
+      const prev = reels.get(reelId)?.state
+      if (prev === 'USED_UP') return
+      steps.push({
+        do: async () => {
+          await changeReelState(token, reelId, 'USED_UP')
+        },
+        undo: async () => {
+          if (prev) await changeReelState(token, reelId, prev)
+        },
+      })
+    }
+
+    if (isMono && monoLasted === false) {
+      // Reel substitution: rewrite Mono → Hybrid, preserving the agreed price by
+      // splitting the original String Fee F/2 on each side (not derived from the
+      // substitute Reel's own fee — see ADR 0009).
+      const r1 = job.mains.reelId!
+      const r2 = substituteReelId
+      const f = job.totalStringFee
+      const mainsFee = round2(f / 2)
+      const crossFee = round2(f - mainsFee) // mainsFee + crossFee === f exactly
+      const subReel = availReels.find((r) => r.id === r2)
+      const mainsReel = reels.get(r1)
+      const subName = subReel ? `${subReel.brand} ${subReel.model}` : 'another reel'
+      const mainsName = mainsReel ? `${mainsReel.brand} ${mainsReel.model}` : 'the mains reel'
+      const note = `Reel substitution: ${mainsName} ran out after the mains; crosses strung from ${subName}.`
+      const newNotes = job.notes ? `${job.notes}\n${note}` : note
+      const original = toUpdateRequest(job)
+      const rewrite: UpdateJobRequest = {
+        dueDate: job.dueDate,
+        notes: newNotes,
+        mainsTension: job.mainsTension,
+        crossesTension: job.crossesTension,
+        serviceFee: job.serviceFee,
+        hybrid: true,
+        mains: { type: 'REEL', reelId: r1, stringFee: mainsFee },
+        crosses: { type: 'REEL', reelId: r2, stringFee: crossFee },
+      }
+      // 1. Rewrite the Job to Hybrid.
+      steps.push({
+        do: async () => {
+          await updateJob(token, id, rewrite)
+        },
+        undo: async () => {
+          await updateJob(token, id, original)
+        },
+      })
+      // 2. Commit the substitute Reel if it was New.
+      if (subReel?.state === 'NEW') {
+        steps.push({
+          do: async () => {
+            await changeReelState(token, r2, 'IN_USE')
+          },
+          undo: async () => {
+            await changeReelState(token, r2, 'NEW')
+          },
+        })
+      }
+      // 3. The mains Reel is definitionally empty.
+      exhaustReel(r1)
+    } else if (isMono) {
+      // Mono lasted the whole racket: optionally mark the single Reel used up.
+      if (monoUsedUp && job.mains.reelId) exhaustReel(job.mains.reelId)
+    } else {
+      // Hybrid: mark each Reel the Stringer flagged as used up.
+      for (const reelId of usedUpReels) exhaustReel(reelId)
+    }
+
+    // 4. Advance the stage — last, so a failure is caught before the Job moves.
+    steps.push({
+      do: async () => {
+        finalJob = await changeJobStage(token, id, 'DONE')
+      },
+      undo: async () => {},
+    })
+
+    setFinishing(true)
+    const completed: SagaStep[] = []
+    try {
+      for (const step of steps) {
+        await step.do()
+        completed.push(step)
+      }
+      setShowDone(false)
+      if (finalJob) setJob(finalJob)
+      showToast('Job marked Done')
+    } catch {
+      // Compensate: undo completed steps in reverse so nothing changed.
+      let revertFailed = 0
+      for (const step of completed.reverse()) {
+        try {
+          await step.undo()
+        } catch {
+          revertFailed++
+        }
+      }
+      setShowDone(false)
+      if (revertFailed > 0) {
+        showToast(
+          `Couldn't finish the job, and ${revertFailed} change${revertFailed > 1 ? 's' : ''} couldn't be rolled back — check the Strings page.`,
+          'error',
+        )
+      } else {
+        showToast("Couldn't finish the job — nothing was changed. Please try again.", 'error')
+      }
+    } finally {
+      setFinishing(false)
+      // Re-sync Reel caches regardless of outcome (the rewrite may have added a side).
+      await refreshReelMaps(finalJob ?? job)
+    }
+  }
+
   async function handleDelete() {
     if (!id) return
     setDeleting(true)
@@ -272,6 +523,16 @@ export default function JobDetailPage() {
   const currentIndex = JOB_STAGES.indexOf(job.stage)
   const next = nextStage(job.stage)
   const commitReels = newReelCommitments(job, reels)
+
+  // Done-prompt derived values (ADR 0009).
+  const isMono = !job.hybrid
+  const monoMainsName =
+    job.mains.type === 'REEL' && job.mains.reelId ? reelNames.get(job.mains.reelId) ?? 'the reel' : 'the reel'
+  const substituteCandidates = availReels.filter((r) => r.state !== 'USED_UP' && r.id !== job.mains.reelId)
+  const hybridReelRefs = reelRefsByReel(job)
+  const doneValid = isMono
+    ? monoLasted !== null && (monoLasted === true || substituteReelId !== '')
+    : true
 
   return (
     <>
@@ -468,6 +729,152 @@ export default function JobDetailPage() {
               </button>
               <button className="btn btn-primary" onClick={handleConfirmCommit} disabled={committing}>
                 {committing ? 'Starting…' : 'Mark In Use & start'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDone && (
+        <div className="modal-overlay open">
+          <div className="modal">
+            <div className="modal-header">
+              <span className="modal-title">Finish job — reel check</span>
+            </div>
+            <div style={{ padding: 'var(--sp-2) 0 var(--sp-4)', fontSize: 'var(--text-sm)', color: 'var(--fg)' }}>
+              {isMono ? (
+                <>
+                  <p style={{ margin: '0 0 var(--sp-3)' }}>
+                    Did <strong>{monoMainsName}</strong> last the whole racket?
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="mono-lasted"
+                        checked={monoLasted === true}
+                        onChange={() => setMonoLasted(true)}
+                        disabled={finishing}
+                      />
+                      Yes — strung the mains and crosses
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="mono-lasted"
+                        checked={monoLasted === false}
+                        onChange={() => setMonoLasted(false)}
+                        disabled={finishing}
+                      />
+                      No — it ran out after the mains
+                    </label>
+                  </div>
+
+                  {monoLasted === true && (
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--sp-2)',
+                        cursor: 'pointer',
+                        marginTop: 'var(--sp-4)',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={monoUsedUp}
+                        onChange={(e) => setMonoUsedUp(e.target.checked)}
+                        disabled={finishing}
+                      />
+                      The reel is now used up (empty)
+                    </label>
+                  )}
+
+                  {monoLasted === false && (
+                    <div style={{ marginTop: 'var(--sp-4)' }}>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: 'var(--text-xs)',
+                          fontWeight: 500,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.06em',
+                          color: 'var(--fg-muted)',
+                          fontFamily: 'var(--font-mono)',
+                          marginBottom: 'var(--sp-2)',
+                        }}
+                      >
+                        Finish the crosses from
+                      </label>
+                      {availLoading ? (
+                        <div style={{ color: 'var(--fg-muted)' }}>Loading reels…</div>
+                      ) : substituteCandidates.length === 0 ? (
+                        <div style={{ color: 'var(--status-overdue-fg)' }}>
+                          No other reels available to finish the crosses.
+                        </div>
+                      ) : (
+                        <select
+                          className="select"
+                          value={substituteReelId}
+                          onChange={(e) => setSubstituteReelId(e.target.value)}
+                          disabled={finishing}
+                        >
+                          <option value="">Select a reel…</option>
+                          {substituteCandidates.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {reelDisplayName(r)} · {r.state === 'NEW' ? 'New' : 'In Use'}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      <p style={{ margin: 'var(--sp-3) 0 0', color: 'var(--fg-muted)' }}>
+                        <strong>{monoMainsName}</strong> will be marked used up, and the job becomes a hybrid. The total
+                        stays <span className="mono">{money(job.total)}</span>.
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p style={{ margin: '0 0 var(--sp-3)' }}>Which reels are now used up (empty)?</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+                    {hybridReelRefs.map(({ reelId, labels }) => (
+                      <label
+                        key={reelId}
+                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', cursor: 'pointer' }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={usedUpReels.has(reelId)}
+                          onChange={(e) =>
+                            setUsedUpReels((prev) => {
+                              const next = new Set(prev)
+                              if (e.target.checked) next.add(reelId)
+                              else next.delete(reelId)
+                              return next
+                            })
+                          }
+                          disabled={finishing}
+                        />
+                        <span>
+                          {reelNames.get(reelId) ?? 'Reel'}{' '}
+                          <span style={{ color: 'var(--fg-muted)' }}>· {labels.join(' & ')}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <p style={{ margin: 'var(--sp-3) 0 0', color: 'var(--fg-muted)' }}>
+                    Leave all unchecked if none ran out.
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setShowDone(false)} disabled={finishing}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={handleConfirmDone} disabled={finishing || !doneValid}>
+                {finishing ? 'Finishing…' : 'Mark Done'}
               </button>
             </div>
           </div>
