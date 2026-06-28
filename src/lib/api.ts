@@ -122,7 +122,7 @@ export const JOB_STAGE_LABELS: Record<JobStage, string> = {
   ANNOUNCED: 'Announced',
   PICKED_UP: 'Picked Up',
   IN_PROGRESS: 'In Progress',
-  DONE: 'Done',
+  DONE: 'Return to Customer',
   RETURNED: 'Returned',
 }
 

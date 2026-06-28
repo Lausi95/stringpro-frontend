@@ -450,7 +450,7 @@ export default function JobDetailPage() {
       }
       setShowDone(false)
       if (finalJob) setJob(finalJob)
-      showToast('Job marked Done')
+      showToast('Job marked Return to Customer')
     } catch {
       // Compensate: undo completed steps in reverse so nothing changed.
       let revertFailed = 0
@@ -874,7 +874,7 @@ export default function JobDetailPage() {
                 Cancel
               </button>
               <button className="btn btn-primary" onClick={handleConfirmDone} disabled={finishing || !doneValid}>
-                {finishing ? 'Finishing…' : 'Mark Done'}
+                {finishing ? 'Finishing…' : 'Mark as Return to Customer'}
               </button>
             </div>
           </div>

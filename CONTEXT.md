@@ -13,7 +13,7 @@ _Avoid_: Order, request, ticket
 - **Announced** (`ANNOUNCED`) — intake recorded; Racket not yet received.
 - **Picked Up** (`PICKED_UP`) — Racket physically received by the Stringer.
 - **In Progress** (`IN_PROGRESS`) — being strung.
-- **Done** (`DONE`) — strung, awaiting handover to the Customer.
+- **Done** (`DONE`) — strung, awaiting handover to the Customer. **Displayed in the UI as "Return to Customer"** — a call-to-action for the Stringer's next physical step. The canonical/backend term remains "Done"/`DONE`; only the display label differs. This UI label deliberately sits immediately before "Returned"; the wording similarity between the two was raised and accepted.
 - **Returned** (`RETURNED`) — handed back to the Customer; terminal.
 _Avoid_: Status, phase, step; Queued, Ready, Paid (these were never backend stages)
 
