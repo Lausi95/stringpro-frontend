@@ -1,0 +1,73 @@
+.settings-card {
+  max-width: 640px;
+}
+.settings-card + .settings-card {
+  margin-top: var(--sp-6);
+}
+
+.settings-card-title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  margin: 0 0 var(--sp-5);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-saved-at {
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.field-error {
+  font-size: var(--text-xs);
+  color: var(--status-overdue-fg);
+  margin-top: 3px;
+}
+.input-error,
+.input-error:focus {
+  border-color: var(--status-overdue-border);
+}
+.input-error:focus {
+  box-shadow: 0 0 0 3px var(--status-overdue-bg);
+}
+
+/* Skeleton loading state */
+.skeleton-block {
+  background: var(--clay-100);
+  border-radius: var(--r-sm);
+}
+.skeleton-title {
+  height: 22px;
+  width: 140px;
+  margin-bottom: var(--sp-5);
+}
+.skeleton-label {
+  height: 13px;
+  width: 120px;
+  margin-bottom: 6px;
+}
+.skeleton-input {
+  height: 40px;
+  width: 100%;
+}
+.skeleton-field + .skeleton-field {
+  margin-top: var(--sp-5);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton-block {
+    animation: skeleton-pulse 1.2s ease-in-out infinite;
+  }
+}
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import keycloak from './lib/keycloak'
 import { KeycloakProvider } from './lib/KeycloakContext'
+import { ToastProvider } from './components/Toast'
 import App from './App'
 import './styles/shared.css'
 
@@ -12,7 +13,9 @@ keycloak
     createRoot(document.getElementById('root')!).render(
       <StrictMode>
         <KeycloakProvider>
-          <App />
+          <ToastProvider>
+            <App />
+          </ToastProvider>
         </KeycloakProvider>
       </StrictMode>,
     )

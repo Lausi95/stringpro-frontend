@@ -339,6 +339,8 @@ input, select, textarea { font: inherit; }
   min-height: 40px;
 }
 .btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled:active { transform: none; }
 .btn svg { width: 15px; height: 15px; stroke-width: 2.25; flex-shrink: 0; }
 
 .btn-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }

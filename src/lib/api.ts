@@ -89,6 +89,24 @@ export interface ReelFormData {
   purchaseDate: string
 }
 
+export interface SettingsResponse {
+  serviceFee: number
+  fullName: string
+  email: string
+  iban: string
+  address: string
+  /** ISO date-time; absent/zero until the settings have been saved at least once. */
+  updatedAt?: string
+}
+
+export interface SettingsFormData {
+  serviceFee: number
+  fullName: string
+  email: string
+  iban: string
+  address: string
+}
+
 interface ApiError extends Error {
   status: number
 }
@@ -268,4 +286,23 @@ export async function deleteReel(token: string, id: string): Promise<void> {
     headers: authHeaders(token),
   })
   await throwIfNotOk(res)
+}
+
+export async function getSettings(token: string): Promise<SettingsResponse> {
+  const res = await fetch(`${API_BASE}/settings`, { headers: authHeaders(token) })
+  await throwIfNotOk(res)
+  return res.json()
+}
+
+export async function updateSettings(
+  token: string,
+  data: SettingsFormData,
+): Promise<SettingsResponse> {
+  const res = await fetch(`${API_BASE}/settings`, {
+    method: 'PUT',
+    headers: authHeaders(token),
+    body: JSON.stringify(data),
+  })
+  await throwIfNotOk(res)
+  return res.json()
 }

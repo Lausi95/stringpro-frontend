@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage'
 import CustomersPage from './pages/customers/CustomersPage'
 import CustomerDetailPage from './pages/customers/CustomerDetailPage'
 import StringsPage from './pages/strings/StringsPage'
+import SettingsPage from './pages/settings/SettingsPage'
 
 function NotImplemented({ name }: { name: string }) {
   return (
@@ -25,7 +26,7 @@ export default function App() {
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="/strings" element={<StringsPage />} />
           <Route path="/payments" element={<NotImplemented name="Payments" />} />
-          <Route path="/settings" element={<NotImplemented name="Settings" />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

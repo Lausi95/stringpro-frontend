@@ -36,6 +36,11 @@ _Avoid_: Labor cost, stringing fee
 **String Fee**: The material charge billed to the Customer per stringing, configured per Reel.
 _Avoid_: Material cost, string cost
 
+### Configuration
+
+**Settings**: The single global configuration record for the installation, owned by the Stringer. It consists of exactly: the Service Fee, and the Stringer's identity/contact details (full name, email, IBAN, address). There is no payment-method configuration — payment methods are not a modelled concept. The String Fee is *not* a Setting; it lives per Reel. Settings is a singleton (one per installation), always readable (defaults until first saved).
+_Avoid_: Preferences, config, profile
+
 ### Inventory
 
 **String**: A string product/material as a concept — a brand + model + material + gauge (e.g. "Babolat RPM Blast, polyester, 1.25 mm"). It is *what* a Racket is strung with, not a physical countable item. The inventory page is titled "String Inventory".
