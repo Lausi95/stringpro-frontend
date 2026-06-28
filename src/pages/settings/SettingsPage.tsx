@@ -189,10 +189,10 @@ export default function SettingsPage() {
     <>
       <div className="page-header">
         <div className="page-header-left">
-          <h1 className="page-title">Settings</h1>
           {!loading && !fetchError && savedAt && (
-            <span className="settings-saved-at">Last saved {formatSavedAt(savedAt)}</span>
+            <span className="page-eyebrow">Last saved {formatSavedAt(savedAt)}</span>
           )}
+          <h1 className="page-title">Settings</h1>
         </div>
         <button
           className="btn btn-primary"
