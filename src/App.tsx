@@ -6,6 +6,7 @@ import JobDetailPage from './pages/jobs/JobDetailPage'
 import CustomersPage from './pages/customers/CustomersPage'
 import CustomerDetailPage from './pages/customers/CustomerDetailPage'
 import StringsPage from './pages/strings/StringsPage'
+import ReelDetailPage from './pages/strings/ReelDetailPage'
 import SettingsPage from './pages/settings/SettingsPage'
 
 function NotImplemented({ name }: { name: string }) {
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="/strings" element={<StringsPage />} />
+          <Route path="/strings/:id" element={<ReelDetailPage />} />
           <Route path="/payments" element={<NotImplemented name="Payments" />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

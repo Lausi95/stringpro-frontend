@@ -210,6 +210,110 @@ export interface CreateJobRequest {
 /** Edit payload. Customer and Racket cannot change after creation. */
 export type UpdateJobRequest = Omit<CreateJobRequest, 'customerId' | 'racketId'>
 
+/**
+ * Job stages at which a Reel is considered consumed — string has physically
+ * been pulled. Earlier stages reference a Reel but have not drawn from it.
+ * See ADR 0007.
+ */
+export const CONSUMING_STAGES: ReadonlySet<JobStage> = new Set<JobStage>([
+  'IN_PROGRESS',
+  'DONE',
+  'RETURNED',
+])
+
+export function isConsuming(job: JobResponse): boolean {
+  return CONSUMING_STAGES.has(job.stage)
+}
+
+/**
+ * The String Sides of a Job, treating a Mono Job as mains-only even if the
+ * backend ever populates `crosses` (guards the double-count of ADR 0006).
+ */
+export function jobSides(job: JobResponse): StringSideResponse[] {
+  if (!job.hybrid) return [job.mains]
+  return job.crosses ? [job.mains, job.crosses] : [job.mains]
+}
+
+/** Which side(s) of a consuming Job drew from a given Reel. */
+export interface ReelSideUsage {
+  job: JobResponse
+  /** true when the Reel is on the mains side. */
+  mains: boolean
+  /** true when the Reel is on the crosses side (Hybrid only). */
+  crosses: boolean
+  /** Meters this Job drew from the Reel (Hybrid side = half a stringing). */
+  meters: number
+  /** String Fee earned from this Reel on this Job (sum of the matching sides). */
+  earned: number
+}
+
+/** Derived usage/earnings for one Reel, aggregated from consuming Jobs. See ADR 0007. */
+export interface ReelUsage {
+  /** Distinct consuming Jobs that drew from this Reel. */
+  jobCount: number
+  /** Total meters drawn from the Reel. */
+  metersConsumed: number
+  /** Total String Fees earned from the Reel. */
+  earned: number
+}
+
+const EMPTY_USAGE: ReelUsage = { jobCount: 0, metersConsumed: 0, earned: 0 }
+
+/**
+ * How a single consuming Job draws from one Reel: meters (Hybrid side = half
+ * `metersPerJob`) and earned String Fee, summed across the sides that match.
+ * Returns null when the Job does not reference the Reel. See ADR 0007.
+ */
+export function reelSideUsage(job: JobResponse, reel: ReelResponse): ReelSideUsage | null {
+  const sides = jobSides(job)
+  const onMains = sides[0]?.type === 'REEL' && sides[0]?.reelId === reel.id
+  const crossSide = sides[1]
+  const onCrosses = crossSide?.type === 'REEL' && crossSide?.reelId === reel.id
+  if (!onMains && !onCrosses) return null
+  // A Hybrid side strings half the racket, so draws half a stringing's meters.
+  const perSideMeters = job.hybrid ? reel.metersPerJob / 2 : reel.metersPerJob
+  let meters = 0
+  let earned = 0
+  if (onMains) {
+    meters += perSideMeters
+    earned += sides[0].stringFee
+  }
+  if (onCrosses && crossSide) {
+    meters += perSideMeters
+    earned += crossSide.stringFee
+  }
+  return { job, mains: onMains, crosses: onCrosses, meters, earned }
+}
+
+/** Aggregate a Reel's usage from a list of Jobs (consuming stages only). */
+export function aggregateReelUsage(reel: ReelResponse, jobs: JobResponse[]): ReelUsage {
+  let jobCount = 0
+  let metersConsumed = 0
+  let earned = 0
+  for (const job of jobs) {
+    if (!isConsuming(job)) continue
+    const usage = reelSideUsage(job, reel)
+    if (!usage) continue
+    jobCount += 1
+    metersConsumed += usage.meters
+    earned += usage.earned
+  }
+  return { jobCount, metersConsumed, earned }
+}
+
+/** Sum of `ReelUsage` across reels — for the inventory page summary cards. */
+export function sumReelUsage(usages: Iterable<ReelUsage>): ReelUsage {
+  let acc = { ...EMPTY_USAGE }
+  for (const u of usages) {
+    acc = {
+      jobCount: acc.jobCount + u.jobCount,
+      metersConsumed: acc.metersConsumed + u.metersConsumed,
+      earned: acc.earned + u.earned,
+    }
+  }
+  return acc
+}
+
 interface ApiError extends Error {
   status: number
 }
@@ -437,6 +541,28 @@ export async function listJobs(
   const res = await fetch(`${API_BASE}/jobs?${query}`, { headers: authHeaders(token) })
   await throwIfNotOk(res)
   return res.json()
+}
+
+/**
+ * Fetch every Job matching the filters by paging to the last page. Unlike a
+ * single generous `size`, this never silently truncates — Jobs grow with every
+ * stringing, and the inventory money metrics depend on the full set (ADR 0007).
+ */
+export async function fetchAllJobs(
+  token: string,
+  params: { stage?: JobStage; customerId?: string; racketId?: string; reelId?: string } = {},
+  pageSize = 200,
+): Promise<JobResponse[]> {
+  const all: JobResponse[] = []
+  let page = 0
+  // Guard against a misbehaving backend that never reports the last page.
+  for (let guard = 0; guard < 1000; guard++) {
+    const res = await listJobs(token, { ...params, page, size: pageSize })
+    all.push(...res.content)
+    if (res.content.length === 0 || page + 1 >= res.totalPages) break
+    page += 1
+  }
+  return all
 }
 
 export async function getJob(token: string, id: string): Promise<JobResponse> {

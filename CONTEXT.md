@@ -71,3 +71,8 @@ _Avoid_: Roll, spool, string (when meaning the physical unit)
 - **In Use** (`IN_USE`) — actively being strung from.
 - **Used up** (`USED_UP`) — exhausted or retired; no longer available.
 _Avoid_: Status, availability, active/inactive
+
+**Reel consumption**: How a Reel is drawn down by the Jobs that string from it. A Reel is considered consumed by a Job only once that Job reaches **In Progress** — earlier Stages (`ANNOUNCED`, `PICKED_UP`) reference the Reel but have not yet pulled string from it. A **Mono** Job draws one whole stringing's worth of String from its Reel; each side of a **Hybrid** Job draws **half** a stringing (the Reel strings only half the racket). Reel consumption is a *derived, informational* view computed from Jobs — it never changes the Reel's explicitly-tracked Reel state, and it does not decrement any stored quantity.
+_Avoid_: Depletion as a stored field, auto-retiring a Reel from usage
+
+**Earned (per Reel)**: The total String Fees a Reel has brought in, summed from the String Sides that drew from it across consuming Jobs — the side's String Fee, not the Job total. **Net return** for a Reel is its Earned minus the Reel's purchase cost.

@@ -18,6 +18,8 @@
   transition: box-shadow 160ms ease-out;
 }
 .roll-card.inactive { opacity: 0.55; }
+.roll-card.clickable { cursor: pointer; }
+.roll-card.clickable:hover { box-shadow: var(--sh-md); border-color: var(--border-strong); }
 
 /* header */
 .roll-header {
@@ -123,6 +125,8 @@
   border-radius: var(--r-full);
 }
 .roll-meter-fill.empty { background: var(--border-strong); }
+.roll-meter-fill.over { background: var(--status-overdue-fg); }
+.roll-meter-over { color: var(--status-overdue-fg); font-weight: 600; }
 .roll-meter-labels {
   display: flex;
   justify-content: space-between;
@@ -209,7 +213,10 @@
   background: var(--surface-tinted);
   color: var(--fg-muted);
 }
+.roll-fin-net.has-data { background: var(--surface-tinted); color: var(--fg); }
 .roll-fin-net-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.roll-fin-net-num.pos { color: var(--court-700); }
+.roll-fin-net-num.neg { color: var(--status-overdue-fg); }
 .roll-fin-net-sub {
   font-size: 10px;
   font-weight: 400;

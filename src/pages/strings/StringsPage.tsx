@@ -1,13 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { useKeycloakToken } from '../../lib/KeycloakContext'
 import {
   listReels,
   changeReelState,
   deleteReel,
+  fetchAllJobs,
+  aggregateReelUsage,
+  sumReelUsage,
+  isConsuming,
+  jobSides,
   type ReelResponse,
   type ReelState,
   type ReelMaterial,
+  type ReelUsage,
+  type JobResponse,
 } from '../../lib/api'
 import Modal from '../../components/Modal'
 import ReelFormModal from '../../components/ReelFormModal'
@@ -15,6 +23,11 @@ import './StringsPage.css'
 
 const FETCH_SIZE = 200
 const DASH = '—'
+
+/** Meters can be fractional (a Hybrid side draws half a stringing); trim to ≤1 decimal. */
+function fmtMeters(n: number): string {
+  return (Math.round(n * 10) / 10).toString()
+}
 
 const MATERIAL_LABEL: Record<ReelMaterial, string> = {
   POLYESTER: 'Polyester',
@@ -52,10 +65,17 @@ function fmtDate(iso: string): string {
 
 export default function StringsPage() {
   const token = useKeycloakToken()
+  const navigate = useNavigate()
 
   const [reels, setReels] = useState<ReelResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
+
+  // Jobs feed the derived usage/earnings; fetched independently so a jobs
+  // failure never blocks the reel grid (metrics just fall back to "—").
+  const [jobs, setJobs] = useState<JobResponse[]>([])
+  const [jobsLoading, setJobsLoading] = useState(true)
+  const [jobsError, setJobsError] = useState(false)
 
   const [filter, setFilter] = useState<Filter>('ALL')
   const [busyStateId, setBusyStateId] = useState<string | null>(null)
@@ -73,6 +93,15 @@ export default function StringsPage() {
       .finally(() => setLoading(false))
   }, [token])
 
+  useEffect(() => {
+    setJobsLoading(true)
+    setJobsError(false)
+    fetchAllJobs(token)
+      .then(setJobs)
+      .catch(() => setJobsError(true))
+      .finally(() => setJobsLoading(false))
+  }, [token])
+
   const counts = {
     ALL: reels.length,
     NEW: reels.filter((r) => r.state === 'NEW').length,
@@ -81,6 +110,27 @@ export default function StringsPage() {
   }
 
   const totalInvested = reels.reduce((sum, r) => sum + r.cost, 0)
+
+  // Per-Reel usage derived from Jobs. Available only once Jobs load cleanly.
+  const metricsReady = !jobsLoading && !jobsError
+  const usageByReel = useMemo(() => {
+    const map = new Map<string, ReelUsage>()
+    for (const reel of reels) map.set(reel.id, aggregateReelUsage(reel, jobs))
+    return map
+  }, [reels, jobs])
+  const totals = useMemo(() => sumReelUsage(usageByReel.values()), [usageByReel])
+  const netReturnTotal = totals.earned - totalInvested
+  // Distinct rackets strung from inventory. A Hybrid Job can draw from two
+  // Reels — it counts once here, not once per Reel (which `totals.jobCount` does).
+  const stringingsDone = useMemo(() => {
+    const reelIds = new Set(reels.map((r) => r.id))
+    let n = 0
+    for (const job of jobs) {
+      if (!isConsuming(job)) continue
+      if (jobSides(job).some((s) => s.type === 'REEL' && s.reelId !== undefined && reelIds.has(s.reelId))) n += 1
+    }
+    return n
+  }, [reels, jobs])
 
   const visibleReels = filter === 'ALL' ? reels : reels.filter((r) => r.state === filter)
 
@@ -158,13 +208,25 @@ export default function StringsPage() {
           </div>
           <div className="summary-card">
             <div className="summary-card-label">String fees collected</div>
-            <div className="summary-card-value">{DASH}</div>
-            <div className="summary-card-sub">Tracked once jobs are recorded</div>
+            <div className="summary-card-value">{metricsReady ? fmtEur(totals.earned) : DASH}</div>
+            <div className="summary-card-sub">
+              {jobsError
+                ? 'Could not load jobs'
+                : metricsReady
+                  ? `from ${stringingsDone} stringing${stringingsDone !== 1 ? 's' : ''}`
+                  : 'Tracked once jobs are recorded'}
+            </div>
           </div>
           <div className="summary-card">
-            <div className="summary-card-label">Avg string efficiency</div>
-            <div className="summary-card-value">{DASH}</div>
-            <div className="summary-card-sub">Tracked once jobs are recorded</div>
+            <div className="summary-card-label">Net return</div>
+            <div className="summary-card-value">{metricsReady ? fmtEur(netReturnTotal) : DASH}</div>
+            <div className="summary-card-sub">
+              {jobsError
+                ? 'Could not load jobs'
+                : metricsReady
+                  ? 'fees earned − total invested'
+                  : 'Tracked once jobs are recorded'}
+            </div>
           </div>
         </div>
 
@@ -207,7 +269,9 @@ export default function StringsPage() {
               <ReelCard
                 key={reel.id}
                 reel={reel}
+                usage={metricsReady ? usageByReel.get(reel.id) : undefined}
                 busy={busyStateId === reel.id}
+                onOpen={() => navigate(`/strings/${reel.id}`)}
                 onChangeState={handleChangeState}
                 onEdit={() => setFormModal({ mode: 'edit', reel })}
                 onDelete={() => setDeleteTarget(reel)}
@@ -247,20 +311,45 @@ export default function StringsPage() {
 
 interface ReelCardProps {
   reel: ReelResponse
+  /** Job-derived usage; undefined while jobs are loading or failed to load. */
+  usage: ReelUsage | undefined
   busy: boolean
+  onOpen: () => void
   onChangeState: (reel: ReelResponse, next: ReelState) => void
   onEdit: () => void
   onDelete: () => void
 }
 
-function ReelCard({ reel, busy, onChangeState, onEdit, onDelete }: ReelCardProps) {
+function ReelCard({ reel, usage, busy, onOpen, onChangeState, onEdit, onDelete }: ReelCardProps) {
   const meta = STATE_META[reel.state]
   // Knowable without jobs: yield the reel can theoretically deliver.
   const predictedJobs = reel.metersPerJob > 0 ? Math.floor(reel.reelLengthMeters / reel.metersPerJob) : 0
   const potentialIncome = predictedJobs * reel.stringFee
 
+  // Job-derived metrics. Same unit as "predicted yield": whole-stringing equivalents.
+  const hasUsage = usage !== undefined
+  const metersConsumed = usage?.metersConsumed ?? 0
+  const earned = usage?.earned ?? 0
+  const usedStringings = reel.metersPerJob > 0 ? metersConsumed / reel.metersPerJob : 0
+  const usagePct = reel.reelLengthMeters > 0 ? (metersConsumed / reel.reelLengthMeters) * 100 : 0
+  const fillPct = Math.min(usagePct, 100)
+  const over = usagePct > 100
+  const meterKnown = hasUsage && reel.reelLengthMeters > 0
+  const netReturn = earned - reel.cost
+
   return (
-    <div className={`roll-card${reel.state === 'USED_UP' ? ' inactive' : ''}`}>
+    <div
+      className={`roll-card clickable${reel.state === 'USED_UP' ? ' inactive' : ''}`}
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen()
+        }
+      }}
+    >
       <div className="roll-header">
         <div>
           <div className="roll-name">{reel.brand} · {reel.model}</div>
@@ -280,7 +369,10 @@ function ReelCard({ reel, busy, onChangeState, onEdit, onDelete }: ReelCardProps
                 type="button"
                 className={reel.state === s ? 'active' : ''}
                 disabled={busy}
-                onClick={() => onChangeState(reel, s)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onChangeState(reel, s)
+                }}
               >
                 {STATE_META[s].label}
               </button>
@@ -291,10 +383,22 @@ function ReelCard({ reel, busy, onChangeState, onEdit, onDelete }: ReelCardProps
 
       <div className="roll-meter">
         <div className="roll-meter-bar-wrap">
-          <div className="roll-meter-fill empty" style={{ width: '0%' }} />
+          <div
+            className={`roll-meter-fill${!meterKnown || metersConsumed === 0 ? ' empty' : ''}${over ? ' over' : ''}`}
+            style={{ width: meterKnown ? `${fillPct}%` : '0%' }}
+          />
         </div>
         <div className="roll-meter-labels">
-          <span>Usage {DASH}</span>
+          <span>
+            {meterKnown ? (
+              <>
+                {fmtMeters(metersConsumed)} / {reel.reelLengthMeters} m
+                {over && <span className="roll-meter-over"> · over</span>}
+              </>
+            ) : (
+              <>Usage {DASH}</>
+            )}
+          </span>
           <span className="roll-meter-remaining">~{predictedJobs} jobs predicted</span>
         </div>
       </div>
@@ -309,8 +413,8 @@ function ReelCard({ reel, busy, onChangeState, onEdit, onDelete }: ReelCardProps
           </div>
           <div>
             <div className="eff-col-label">Used so far</div>
-            <div className="eff-col-jobs muted">{DASH} jobs</div>
-            <div className="eff-col-income">{DASH} earned</div>
+            <div className="eff-col-jobs muted">{hasUsage ? usedStringings.toFixed(1) : DASH} jobs</div>
+            <div className="eff-col-income">{hasUsage ? `${fmtEur(earned)} earned` : `${DASH} earned`}</div>
           </div>
         </div>
       </div>
@@ -322,14 +426,20 @@ function ReelCard({ reel, busy, onChangeState, onEdit, onDelete }: ReelCardProps
         </div>
         <div className="roll-fin-row">
           <span className="roll-fin-label">String fees earned</span>
-          <span className="roll-fin-val muted">{DASH}</span>
+          <span className="roll-fin-val muted">{hasUsage ? fmtEur(earned) : DASH}</span>
         </div>
         <div className="roll-fin-divider" />
-        <div className="roll-fin-net">
+        <div className={`roll-fin-net${hasUsage ? ' has-data' : ''}`}>
           <span>Net return</span>
           <div style={{ textAlign: 'right' }}>
-            <span className="roll-fin-net-num">{DASH}</span>
-            <div className="roll-fin-net-sub">Tracked once jobs are recorded</div>
+            <span className={`roll-fin-net-num${hasUsage ? (netReturn >= 0 ? ' pos' : ' neg') : ''}`}>
+              {hasUsage ? fmtEur(netReturn) : DASH}
+            </span>
+            <div className="roll-fin-net-sub">
+              {hasUsage
+                ? `${usage.jobCount} job${usage.jobCount !== 1 ? 's' : ''} · ${fmtEur(earned)} earned`
+                : 'Tracked once jobs are recorded'}
+            </div>
           </div>
         </div>
       </div>
@@ -337,10 +447,24 @@ function ReelCard({ reel, busy, onChangeState, onEdit, onDelete }: ReelCardProps
       <div className="roll-footer">
         <span className="roll-purchase-date">Purchased {fmtDate(reel.purchaseDate)}</span>
         <div className="roll-footer-actions">
-          <button type="button" className="btn btn-sm btn-ghost" onClick={onEdit}>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit()
+            }}
+          >
             Edit
           </button>
-          <button type="button" className="btn btn-sm btn-danger" onClick={onDelete}>
+          <button
+            type="button"
+            className="btn btn-sm btn-danger"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete()
+            }}
+          >
             Delete
           </button>
         </div>
