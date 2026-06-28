@@ -17,6 +17,7 @@ import {
   type CustomerResponse,
   type RacketResponse,
   type ReelResponse,
+  type ReelState,
   type StringSideType,
   type StringSideRequest,
   type StringSideResponse,
@@ -66,6 +67,29 @@ function defaultDueDate(): string {
 
 function reelLabel(r: ReelResponse): string {
   return `${r.brand} ${r.model} · ${r.gauge} mm`
+}
+
+/**
+ * Group reels for the selector by state, In Use first, then New, then Used up
+ * (the last only ever present in edit mode for a job's original reel). Within
+ * each group reels are sorted by the visible label (brand → model → gauge).
+ * Empty groups are dropped.
+ */
+function groupReelsForSelect(reels: ReelResponse[]): { state: ReelState; label: string; reels: ReelResponse[] }[] {
+  const order: { state: ReelState; label: string }[] = [
+    { state: 'IN_USE', label: 'In Use' },
+    { state: 'NEW', label: 'New' },
+    { state: 'USED_UP', label: 'Used up' },
+  ]
+  return order
+    .map(({ state, label }) => ({
+      state,
+      label,
+      reels: reels
+        .filter((r) => r.state === state)
+        .sort((a, b) => reelLabel(a).localeCompare(reelLabel(b))),
+    }))
+    .filter((g) => g.reels.length > 0)
 }
 
 function sideFromResp(s: StringSideResponse): SideState {
@@ -406,10 +430,14 @@ export default function JobFormPage() {
                 onChange={(e) => onPickReel(setSide, e.target.value)}
               >
                 <option value="">Select reel…</option>
-                {reels.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {reelLabel(r)}
-                  </option>
+                {groupReelsForSelect(reels).map((g) => (
+                  <optgroup key={g.state} label={g.label}>
+                    {g.reels.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {reelLabel(r)}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
