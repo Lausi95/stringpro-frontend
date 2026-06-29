@@ -454,6 +454,7 @@ input, select, textarea { font: inherit; }
   color: var(--fg);
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
+  white-space: nowrap;
 }
 .summary-card-value.paid   { color: var(--court-700); }
 .summary-card-sub { font-size: var(--text-xs); color: var(--fg-muted); margin-top: var(--sp-1); }
@@ -887,6 +888,8 @@ input, select, textarea { font: inherit; }
   .mobile-nav { display: block; }
   .main-content { margin-inline-start: 0; padding-bottom: 72px; }
   .summary-cards { grid-template-columns: repeat(2, 1fr); gap: var(--sp-3); }
+  .summary-card { padding: var(--sp-4); }
+  .summary-card-value { font-size: 1.4rem; }
   .page-body { padding: var(--sp-4); }
   .page-header { padding: var(--sp-4) var(--sp-4) var(--sp-4); flex-wrap: wrap; }
   .page-title { font-size: 1.5rem; }
