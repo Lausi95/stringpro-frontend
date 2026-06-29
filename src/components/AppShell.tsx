@@ -6,7 +6,6 @@ import {
   CreditCard,
   Settings,
   LogOut,
-  Plus,
   Scissors,
 } from 'lucide-react'
 import keycloak from '../lib/keycloak'
@@ -38,9 +37,9 @@ const sidebarNavItems = [
 ]
 
 const mobileNavItems = [
-  { to: '/', end: true,  icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
   { to: '/customers',    icon: <Users size={20} />,           label: 'Customers' },
-  { to: '/jobs/new',     icon: <Plus size={20} />,            label: 'New Job' },
+  { to: '/strings',      icon: <Link2 size={20} />,           label: 'Strings' },
+  { to: '/', end: true,  icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
   { to: '/payments',     icon: <CreditCard size={20} />,      label: 'Payments' },
   { to: '/settings',     icon: <Settings size={20} />,        label: 'Settings' },
 ]
