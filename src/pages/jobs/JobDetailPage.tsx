@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ChevronRight, Check, ArrowRight, Scissors, Calendar, Receipt } from 'lucide-react'
+import { ChevronRight, Check, ArrowRight, Scissors, Calendar, Receipt, Pencil, Trash2 } from 'lucide-react'
 import { useKeycloakToken } from '../../lib/KeycloakContext'
 import { useToast } from '../../components/Toast'
 import {
@@ -709,17 +709,21 @@ export default function JobDetailPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
-          {next && (
-            <button className="btn btn-primary" onClick={handleAdvance} disabled={advancing || starting}>
-              {advancing ? 'Advancing…' : `Advance to ${JOB_STAGE_LABELS[next]}`}
-              {!advancing && <ArrowRight size={16} />}
-            </button>
-          )}
-          <button className="btn btn-ghost" onClick={() => navigate(`/jobs/${id}/edit`)}>
-            Edit
+          <button
+            className="btn btn-ghost btn-icon"
+            onClick={() => navigate(`/jobs/${id}/edit`)}
+            title="Edit job"
+            aria-label="Edit job"
+          >
+            <Pencil size={16} />
           </button>
-          <button className="btn btn-danger" onClick={() => setShowDelete(true)}>
-            Delete
+          <button
+            className="btn btn-danger btn-icon"
+            onClick={() => setShowDelete(true)}
+            title="Delete job"
+            aria-label="Delete job"
+          >
+            <Trash2 size={16} />
           </button>
         </div>
       </div>
@@ -747,18 +751,33 @@ export default function JobDetailPage() {
               const atTerminal = job.stage === TERMINAL_STAGE
               const isDone = i < currentIndex || (i === currentIndex && atTerminal)
               const cls = isDone ? 'done' : i === currentIndex ? 'active' : ''
+              // Mark the Stage the Job is at (works at the terminal Stage too, where
+              // it is 'done' rather than 'active'). On mobile only this step's label
+              // is shown; the others collapse to dots. See shared.css.
+              const current = i === currentIndex ? 'current' : ''
               return (
-                <div key={stage} className={`stage-step ${cls}`}>
+                <div key={stage} className={`stage-step ${cls} ${current}`}>
                   <div className="stage-dot">{isDone && <Check size={13} strokeWidth={2.5} />}</div>
                   <div className="stage-label">{JOB_STAGE_LABELS[stage]}</div>
                 </div>
               )
             })}
           </div>
+          {next && (
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%', justifyContent: 'center' }}
+              onClick={handleAdvance}
+              disabled={advancing || starting}
+            >
+              {advancing ? 'Advancing…' : `Advance to ${JOB_STAGE_LABELS[next]}`}
+              {!advancing && <ArrowRight size={16} />}
+            </button>
+          )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 'var(--sp-6)', alignItems: 'start' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-6)' }}>
+        <div className="job-detail-grid">
+          <div className="job-detail-cols">
             {/* Stringing */}
             <div className="detail-section">
               <div className="detail-section-header">
@@ -766,6 +785,10 @@ export default function JobDetailPage() {
                 <span className="detail-section-title">Stringing — {job.hybrid ? 'Hybrid' : 'Mono'}</span>
               </div>
               <div className="detail-section-body">
+                <div className="detail-row">
+                  <span className="detail-key">Racket</span>
+                  <span className="detail-val">{racketName}</span>
+                </div>
                 {job.hybrid ? (
                   <>
                     <div className="detail-row">
@@ -791,6 +814,12 @@ export default function JobDetailPage() {
                   <span className="detail-key">Crosses tension</span>
                   <span className="detail-val mono">{job.crossesTension} kg</span>
                 </div>
+                {job.notes && (
+                  <div className="detail-row">
+                    <span className="detail-key">Notes</span>
+                    <span className="detail-val" style={{ maxWidth: '60%' }}>{job.notes}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -810,10 +839,6 @@ export default function JobDetailPage() {
                   </span>
                 </div>
                 <div className="detail-row">
-                  <span className="detail-key">Racket</span>
-                  <span className="detail-val">{racketName}</span>
-                </div>
-                <div className="detail-row">
                   <span className="detail-key">Due date</span>
                   <span className="detail-val mono">{formatDate(job.dueDate)}</span>
                 </div>
@@ -821,12 +846,6 @@ export default function JobDetailPage() {
                   <span className="detail-key">Created</span>
                   <span className="detail-val mono">{formatDate(job.createdAt)}</span>
                 </div>
-                {job.notes && (
-                  <div className="detail-row">
-                    <span className="detail-key">Notes</span>
-                    <span className="detail-val" style={{ maxWidth: '60%' }}>{job.notes}</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>
