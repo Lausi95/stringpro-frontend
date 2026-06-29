@@ -213,7 +213,7 @@ export default function ReelDetailPage() {
       </div>
 
       <div className="page-body">
-        <div className="summary-cards" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="summary-cards">
           <div className="summary-card">
             <div className="summary-card-label">Predicted yield</div>
             <div className="summary-card-value">{fmtEur(predictedJobs * reel.stringFee)}</div>
