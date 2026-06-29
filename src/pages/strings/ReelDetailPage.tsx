@@ -315,19 +315,18 @@ export default function ReelDetailPage() {
                   <th>Intake</th>
                   <th>Stage</th>
                   <th className="num-col">Earned</th>
-                  <th className="actions-col"></th>
                 </tr>
               </thead>
               <tbody>
                 {jobsLoading ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
                       Loading…
                     </td>
                   </tr>
                 ) : jobs.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
                       No jobs have used this reel yet.
                     </td>
                   </tr>
@@ -357,11 +356,6 @@ export default function ReelDetailPage() {
                         </td>
                         <td className="num-col" style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', fontVariantNumeric: 'tabular-nums', color: consuming ? undefined : 'var(--fg-muted)' }}>
                           {fmtEur(earned)}
-                        </td>
-                        <td className="actions-col" onClick={(e) => e.stopPropagation()}>
-                          <button className="btn btn-sm btn-ghost" onClick={() => navigate(`/jobs/${job.id}`)}>
-                            View →
-                          </button>
                         </td>
                       </tr>
                     )

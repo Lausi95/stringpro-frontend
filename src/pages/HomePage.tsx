@@ -205,19 +205,18 @@ export default function HomePage() {
                 <th>Due</th>
                 <th>Stage</th>
                 <th className="num-col">Price</th>
-                <th className="actions-col"></th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
                     Loading…
                   </td>
                 </tr>
               ) : jobs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
                     {stageFilter ? 'No jobs in this stage.' : 'No jobs yet.'}{' '}
                     {!stageFilter && (
                       <Link to="/jobs/new" className="btn btn-sm btn-primary" style={{ marginLeft: 'var(--sp-3)' }}>
@@ -249,11 +248,6 @@ export default function HomePage() {
                     </td>
                     <td className="num-col" style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', fontVariantNumeric: 'tabular-nums' }}>
                       {money(job.total)}
-                    </td>
-                    <td className="actions-col" onClick={(e) => e.stopPropagation()}>
-                      <button className="btn btn-sm btn-ghost" onClick={() => navigate(`/jobs/${job.id}`)}>
-                        View →
-                      </button>
                     </td>
                   </tr>
                 ))

@@ -90,19 +90,18 @@ export default function CustomersPage() {
                 <th className="num-col">Active Jobs</th>
                 <th>Last Job</th>
                 <th className="num-col">Total Spent</th>
-                <th className="actions-col"></th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
                     Loading…
                   </td>
                 </tr>
               ) : customers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
                     {debouncedSearch ? 'No customers match your search.' : 'No customers yet.'}{' '}
                     {!debouncedSearch && (
                       <button className="btn btn-sm btn-primary" onClick={openAddModal} style={{ marginLeft: 'var(--sp-3)' }}>
@@ -124,11 +123,6 @@ export default function CustomersPage() {
                     <td className="num-col"><span style={{ color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>—</span></td>
                     <td><span style={{ color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>—</span></td>
                     <td className="num-col"><span style={{ color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>—</span></td>
-                    <td className="actions-col" onClick={(e) => e.stopPropagation()}>
-                      <button className="btn btn-sm btn-ghost" onClick={() => navigate(`/customers/${c.id}`)}>
-                        View →
-                      </button>
-                    </td>
                   </tr>
                 ))
               )}
