@@ -757,6 +757,15 @@ input, select, textarea { font: inherit; }
 }
 .stage-step.active .stage-label, .stage-step.done .stage-label { color: var(--accent); font-weight: 600; }
 
+/* ─── job detail: content grid (sections + price side column) ── */
+.job-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--sp-6);
+  align-items: start;
+}
+.job-detail-cols { display: flex; flex-direction: column; gap: var(--sp-6); }
+
 /* ─── detail sections ─────────────────────────────── */
 .detail-section {
   border: 1px solid var(--border);
@@ -928,6 +937,15 @@ input, select, textarea { font: inherit; }
 
   /* customer detail overview stacks to a single column */
   .customer-overview { grid-template-columns: 1fr; gap: var(--sp-3); }
+
+  /* job detail: content stacks single-column (price card under the sections) */
+  .job-detail-grid { grid-template-columns: 1fr; }
+
+  /* stage bar: keep all 5 dots, but show only the current Stage's label so the
+     long labels ("In Progress", "Return to Customer") don't wrap/crowd. The lone
+     label is allowed to overflow into its now-empty neighbours' space. */
+  .stage-step:not(.current) .stage-label { display: none; }
+  .stage-step.current .stage-label { white-space: nowrap; }
 
   /* modals become bottom sheets, pinned to the bottom edge */
   .modal-overlay.open { place-items: end center; }

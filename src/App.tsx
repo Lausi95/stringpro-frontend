@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import AppShell from './components/AppShell'
+import InstallHint from './components/InstallHint'
 import HomePage from './pages/HomePage'
 import JobFormPage from './pages/jobs/JobFormPage'
 import JobDetailPage from './pages/jobs/JobDetailPage'
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>
+      <InstallHint />
     </BrowserRouter>
   )
 }
