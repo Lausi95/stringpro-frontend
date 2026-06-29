@@ -81,7 +81,7 @@ export default function CustomersPage() {
         )}
 
         <div className="data-table-wrap">
-          <table className="data-table">
+          <table className="data-table data-table-customers">
             <thead>
               <tr>
                 <th>Name</th>

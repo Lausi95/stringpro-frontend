@@ -893,6 +893,11 @@ input, select, textarea { font: inherit; }
   .form-grid-2 { grid-template-columns: 1fr; }
   .data-table th:nth-child(n+5), .data-table td:nth-child(n+5) { display: none; }
 
+  /* Customers: name + email are enough on a phone — drop Rackets, Active Jobs,
+     Last Job, and Total Spent so the table fits without sideways scroll. */
+  .data-table-customers th:nth-child(n+3),
+  .data-table-customers td:nth-child(n+3) { display: none; }
+
   /* Dashboard jobs table → stacked cards (jobs-only; other tables keep the
      condensed-column behavior above). One outer card, rows divided by a
      hairline; each job laid out as header-row + meta via CSS grid. Price (col
