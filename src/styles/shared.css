@@ -901,6 +901,7 @@ input, select, textarea { font: inherit; }
   .summary-card { padding: var(--sp-4); }
   .summary-card-value { font-size: 1.4rem; }
   .page-body { padding: var(--sp-4); }
+  .search-wrap { max-width: none; width: 100%; }
   .page-header { padding: var(--sp-4) var(--sp-4) var(--sp-4); flex-wrap: wrap; }
   .page-title { font-size: 1.5rem; }
   .form-grid-2 { grid-template-columns: 1fr; }
