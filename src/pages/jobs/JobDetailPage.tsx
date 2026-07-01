@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ChevronRight, Check, ArrowRight, Scissors, Calendar, Receipt, Pencil, Trash2 } from 'lucide-react'
-import { useKeycloakToken } from '../../lib/KeycloakContext'
 import { useToast } from '../../components/Toast'
 import {
   getJob,
@@ -197,7 +196,6 @@ interface SagaStep {
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const token = useKeycloakToken()
   const navigate = useNavigate()
   const { showToast } = useToast()
 
@@ -239,18 +237,18 @@ export default function JobDetailPage() {
     setLoading(true)
     setError(null)
     try {
-      const j = await getJob(token, id)
+      const j = await getJob(id)
       setJob(j)
       const [cust, rack] = await Promise.all([
-        getCustomer(token, j.customerId).catch(() => null),
-        getRacket(token, j.racketId).catch(() => null),
+        getCustomer(j.customerId).catch(() => null),
+        getRacket(j.racketId).catch(() => null),
       ])
       setCustomer(cust)
       setRacket(rack)
       const reelIds = referencedReelIds(j)
       const entries = await Promise.all(
         reelIds.map((rid) =>
-          getReel(token, rid)
+          getReel(rid)
             .then((r) => [rid, r] as const)
             .catch(() => [rid, null] as const),
         ),
@@ -272,7 +270,7 @@ export default function JobDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [token, id])
+  }, [id])
 
   useEffect(() => {
     load()
@@ -285,7 +283,7 @@ export default function JobDetailPage() {
     if (!showStart || !job || usedUpReelSwaps(job, reels).length === 0) return
     let cancelled = false
     setAvailLoading(true)
-    listReels(token, { size: 200 })
+    listReels({ size: 200 })
       .then((p) => {
         if (!cancelled) setAvailReels(p.content)
       })
@@ -298,7 +296,7 @@ export default function JobDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [showStart, token, job, reels])
+  }, [showStart, job, reels])
 
   // Load substitute-reel candidates when the Done prompt opens for a Mono Job
   // (the only case that can need a substitute). See ADR 0009.
@@ -306,7 +304,7 @@ export default function JobDetailPage() {
     if (!showDone || !job || job.hybrid) return
     let cancelled = false
     setAvailLoading(true)
-    listReels(token, { size: 200 })
+    listReels({ size: 200 })
       .then((p) => {
         if (!cancelled) setAvailReels(p.content)
       })
@@ -319,13 +317,13 @@ export default function JobDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [showDone, token, job])
+  }, [showDone, job])
 
   async function advanceOnly(next: JobResponse['stage']) {
     if (!id) return
     setAdvancing(true)
     try {
-      const updated = await changeJobStage(token, id, next)
+      const updated = await changeJobStage(id, next)
       setJob(updated)
       showToast(`Advanced to ${JOB_STAGE_LABELS[next]}`)
     } catch {
@@ -410,10 +408,10 @@ export default function JobDetailPage() {
       const rewrite = buildSwapRequest(job, swapMap, newNotes)
       steps.push({
         do: async () => {
-          await updateJob(token, id, rewrite)
+          await updateJob(id, rewrite)
         },
         undo: async () => {
-          await updateJob(token, id, original)
+          await updateJob(id, original)
         },
       })
     }
@@ -428,10 +426,10 @@ export default function JobDetailPage() {
     for (const reelId of commitIds) {
       steps.push({
         do: async () => {
-          await changeReelState(token, reelId, 'IN_USE')
+          await changeReelState(reelId, 'IN_USE')
         },
         undo: async () => {
-          await changeReelState(token, reelId, 'NEW')
+          await changeReelState(reelId, 'NEW')
         },
       })
     }
@@ -439,7 +437,7 @@ export default function JobDetailPage() {
     // 3. Advance the stage — last, so a failure is caught before the Job moves.
     steps.push({
       do: async () => {
-        finalJob = await changeJobStage(token, id, 'IN_PROGRESS')
+        finalJob = await changeJobStage(id, 'IN_PROGRESS')
       },
       undo: async () => {},
     })
@@ -488,7 +486,7 @@ export default function JobDetailPage() {
     const reelIds = referencedReelIds(j)
     const entries = await Promise.all(
       reelIds.map((rid) =>
-        getReel(token, rid)
+        getReel(rid)
           .then((r) => [rid, r] as const)
           .catch(() => [rid, null] as const),
       ),
@@ -523,10 +521,10 @@ export default function JobDetailPage() {
       if (prev === 'USED_UP') return
       steps.push({
         do: async () => {
-          await changeReelState(token, reelId, 'USED_UP')
+          await changeReelState(reelId, 'USED_UP')
         },
         undo: async () => {
-          if (prev) await changeReelState(token, reelId, prev)
+          if (prev) await changeReelState(reelId, prev)
         },
       })
     }
@@ -560,20 +558,20 @@ export default function JobDetailPage() {
       // 1. Rewrite the Job to Hybrid.
       steps.push({
         do: async () => {
-          await updateJob(token, id, rewrite)
+          await updateJob(id, rewrite)
         },
         undo: async () => {
-          await updateJob(token, id, original)
+          await updateJob(id, original)
         },
       })
       // 2. Commit the substitute Reel if it was New.
       if (subReel?.state === 'NEW') {
         steps.push({
           do: async () => {
-            await changeReelState(token, r2, 'IN_USE')
+            await changeReelState(r2, 'IN_USE')
           },
           undo: async () => {
-            await changeReelState(token, r2, 'NEW')
+            await changeReelState(r2, 'NEW')
           },
         })
       }
@@ -590,7 +588,7 @@ export default function JobDetailPage() {
     // 4. Advance the stage — last, so a failure is caught before the Job moves.
     steps.push({
       do: async () => {
-        finalJob = await changeJobStage(token, id, 'DONE')
+        finalJob = await changeJobStage(id, 'DONE')
       },
       undo: async () => {},
     })
@@ -636,7 +634,7 @@ export default function JobDetailPage() {
     setDeleting(true)
     setDeleteError(null)
     try {
-      await deleteJob(token, id)
+      await deleteJob(id)
       showToast('Job deleted')
       navigate('/')
     } catch {

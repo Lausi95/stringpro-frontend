@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import Modal from './Modal'
-import { useKeycloakToken } from '../lib/KeycloakContext'
 import {
   createPayment,
   PAYMENT_METHODS,
@@ -21,7 +20,6 @@ interface RecordPaymentModalProps {
 const money = (n: number) => `€ ${n.toFixed(2)}`
 
 export default function RecordPaymentModal({ job, customerName, onClose, onSaved }: RecordPaymentModalProps) {
-  const token = useKeycloakToken()
   const balance = Math.max(0, job.total - job.amountPaid)
 
   // Amount is a free-text string so the user can clear/retype; default to the full Balance.
@@ -50,7 +48,7 @@ export default function RecordPaymentModal({ job, customerName, onClose, onSaved
     setSaving(true)
     setFormError(null)
     try {
-      await createPayment(token, {
+      await createPayment({
         jobId: job.id,
         customerId: job.customerId,
         amount: parsed,

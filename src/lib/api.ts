@@ -1,3 +1,6 @@
+import keycloak from './keycloak'
+import { loginWithOffline } from './auth'
+
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
 export interface CustomerResponse {
@@ -325,214 +328,158 @@ export function sumReelUsage(usages: Iterable<ReelUsage>): ReelUsage {
   return acc
 }
 
-interface ApiError extends Error {
+export interface ApiError extends Error {
   status: number
 }
 
-function authHeaders(token: string): HeadersInit {
-  return {
-    Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json',
+/**
+ * Central authenticated fetch. Refreshes the access token just-in-time (the app
+ * keeps no background refresh loop — an idle app simply refreshes on its next
+ * call), attaches the bearer header, and normalises non-2xx into an ApiError.
+ * Pages never call fetch directly; every endpoint below goes through here.
+ * See docs/adr/0015-persist-offline-token-localstorage.md.
+ */
+async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  try {
+    // Refresh if the access token expires within 30s. Uses the stored offline
+    // token via a direct token-endpoint call; rejects once that token is gone.
+    await keycloak.updateToken(30)
+  } catch {
+    // Offline token expired/revoked mid-session → send the user to log in again.
+    void loginWithOffline()
+    const err = new Error('Re-authentication required') as ApiError
+    err.status = 401
+    throw err
   }
-}
-
-async function throwIfNotOk(res: Response): Promise<void> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+      ...init.headers,
+    },
+  })
   if (!res.ok) {
     const err = new Error(`API error ${res.status}`) as ApiError
     err.status = res.status
     throw err
   }
+  return res
 }
 
 export async function listCustomers(
-  token: string,
   params: { page?: number; size?: number; name?: string } = {},
 ): Promise<PagedCustomerResponse> {
   const query = new URLSearchParams()
   if (params.page !== undefined) query.set('page', String(params.page))
   if (params.size !== undefined) query.set('size', String(params.size))
   if (params.name) query.set('name', params.name)
-  const res = await fetch(`${API_BASE}/customers?${query}`, { headers: authHeaders(token) })
-  await throwIfNotOk(res)
+  const res = await apiFetch(`/customers?${query}`)
   return res.json()
 }
 
-export async function createCustomer(
-  token: string,
-  data: CustomerFormData,
-): Promise<CustomerResponse> {
-  const res = await fetch(`${API_BASE}/customers`, {
-    method: 'POST',
-    headers: authHeaders(token),
-    body: JSON.stringify(data),
-  })
-  await throwIfNotOk(res)
+export async function createCustomer(data: CustomerFormData): Promise<CustomerResponse> {
+  const res = await apiFetch(`/customers`, { method: 'POST', body: JSON.stringify(data) })
   return res.json()
 }
 
-export async function getCustomer(token: string, id: string): Promise<CustomerResponse> {
-  const res = await fetch(`${API_BASE}/customers/${id}`, { headers: authHeaders(token) })
-  await throwIfNotOk(res)
+export async function getCustomer(id: string): Promise<CustomerResponse> {
+  const res = await apiFetch(`/customers/${id}`)
   return res.json()
 }
 
 export async function updateCustomer(
-  token: string,
   id: string,
   data: CustomerFormData,
 ): Promise<CustomerResponse> {
-  const res = await fetch(`${API_BASE}/customers/${id}`, {
-    method: 'PUT',
-    headers: authHeaders(token),
-    body: JSON.stringify(data),
-  })
-  await throwIfNotOk(res)
+  const res = await apiFetch(`/customers/${id}`, { method: 'PUT', body: JSON.stringify(data) })
   return res.json()
 }
 
-export async function deleteCustomer(token: string, id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/customers/${id}`, {
-    method: 'DELETE',
-    headers: authHeaders(token),
-  })
-  await throwIfNotOk(res)
+export async function deleteCustomer(id: string): Promise<void> {
+  await apiFetch(`/customers/${id}`, { method: 'DELETE' })
 }
 
-export async function listRackets(token: string, customerId: string): Promise<RacketResponse[]> {
+export async function listRackets(customerId: string): Promise<RacketResponse[]> {
   const query = new URLSearchParams({ customerId })
-  const res = await fetch(`${API_BASE}/rackets?${query}`, { headers: authHeaders(token) })
-  await throwIfNotOk(res)
+  const res = await apiFetch(`/rackets?${query}`)
   return res.json()
 }
 
-export async function getRacket(token: string, id: string): Promise<RacketResponse> {
-  const res = await fetch(`${API_BASE}/rackets/${id}`, { headers: authHeaders(token) })
-  await throwIfNotOk(res)
+export async function getRacket(id: string): Promise<RacketResponse> {
+  const res = await apiFetch(`/rackets/${id}`)
   return res.json()
 }
 
 export async function createRacket(
-  token: string,
   customerId: string,
   data: RacketFormData,
 ): Promise<RacketResponse> {
-  const res = await fetch(`${API_BASE}/rackets`, {
+  const res = await apiFetch(`/rackets`, {
     method: 'POST',
-    headers: authHeaders(token),
     body: JSON.stringify({ ...data, customerId }),
   })
-  await throwIfNotOk(res)
   return res.json()
 }
 
-export async function updateRacket(
-  token: string,
-  id: string,
-  data: RacketFormData,
-): Promise<RacketResponse> {
-  const res = await fetch(`${API_BASE}/rackets/${id}`, {
-    method: 'PUT',
-    headers: authHeaders(token),
-    body: JSON.stringify(data),
-  })
-  await throwIfNotOk(res)
+export async function updateRacket(id: string, data: RacketFormData): Promise<RacketResponse> {
+  const res = await apiFetch(`/rackets/${id}`, { method: 'PUT', body: JSON.stringify(data) })
   return res.json()
 }
 
-export async function deleteRacket(token: string, id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/rackets/${id}`, {
-    method: 'DELETE',
-    headers: authHeaders(token),
-  })
-  await throwIfNotOk(res)
+export async function deleteRacket(id: string): Promise<void> {
+  await apiFetch(`/rackets/${id}`, { method: 'DELETE' })
 }
 
 export async function listReels(
-  token: string,
   params: { page?: number; size?: number; state?: ReelState } = {},
 ): Promise<PagedReelResponse> {
   const query = new URLSearchParams()
   if (params.page !== undefined) query.set('page', String(params.page))
   if (params.size !== undefined) query.set('size', String(params.size))
   if (params.state) query.set('state', params.state)
-  const res = await fetch(`${API_BASE}/reels?${query}`, { headers: authHeaders(token) })
-  await throwIfNotOk(res)
+  const res = await apiFetch(`/reels?${query}`)
   return res.json()
 }
 
-export async function getReel(token: string, id: string): Promise<ReelResponse> {
-  const res = await fetch(`${API_BASE}/reels/${id}`, { headers: authHeaders(token) })
-  await throwIfNotOk(res)
+export async function getReel(id: string): Promise<ReelResponse> {
+  const res = await apiFetch(`/reels/${id}`)
   return res.json()
 }
 
-export async function createReel(token: string, data: ReelFormData): Promise<ReelResponse> {
-  const res = await fetch(`${API_BASE}/reels`, {
-    method: 'POST',
-    headers: authHeaders(token),
-    body: JSON.stringify(data),
-  })
-  await throwIfNotOk(res)
+export async function createReel(data: ReelFormData): Promise<ReelResponse> {
+  const res = await apiFetch(`/reels`, { method: 'POST', body: JSON.stringify(data) })
   return res.json()
 }
 
-export async function updateReel(
-  token: string,
-  id: string,
-  data: ReelFormData,
-): Promise<ReelResponse> {
-  const res = await fetch(`${API_BASE}/reels/${id}`, {
-    method: 'PUT',
-    headers: authHeaders(token),
-    body: JSON.stringify(data),
-  })
-  await throwIfNotOk(res)
+export async function updateReel(id: string, data: ReelFormData): Promise<ReelResponse> {
+  const res = await apiFetch(`/reels/${id}`, { method: 'PUT', body: JSON.stringify(data) })
   return res.json()
 }
 
-export async function changeReelState(
-  token: string,
-  id: string,
-  state: ReelState,
-): Promise<ReelResponse> {
-  const res = await fetch(`${API_BASE}/reels/${id}/state`, {
+export async function changeReelState(id: string, state: ReelState): Promise<ReelResponse> {
+  const res = await apiFetch(`/reels/${id}/state`, {
     method: 'PATCH',
-    headers: authHeaders(token),
     body: JSON.stringify({ state }),
   })
-  await throwIfNotOk(res)
   return res.json()
 }
 
-export async function deleteReel(token: string, id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/reels/${id}`, {
-    method: 'DELETE',
-    headers: authHeaders(token),
-  })
-  await throwIfNotOk(res)
+export async function deleteReel(id: string): Promise<void> {
+  await apiFetch(`/reels/${id}`, { method: 'DELETE' })
 }
 
-export async function getSettings(token: string): Promise<SettingsResponse> {
-  const res = await fetch(`${API_BASE}/settings`, { headers: authHeaders(token) })
-  await throwIfNotOk(res)
+export async function getSettings(): Promise<SettingsResponse> {
+  const res = await apiFetch(`/settings`)
   return res.json()
 }
 
-export async function updateSettings(
-  token: string,
-  data: SettingsFormData,
-): Promise<SettingsResponse> {
-  const res = await fetch(`${API_BASE}/settings`, {
-    method: 'PUT',
-    headers: authHeaders(token),
-    body: JSON.stringify(data),
-  })
-  await throwIfNotOk(res)
+export async function updateSettings(data: SettingsFormData): Promise<SettingsResponse> {
+  const res = await apiFetch(`/settings`, { method: 'PUT', body: JSON.stringify(data) })
   return res.json()
 }
 
 export async function listJobs(
-  token: string,
   params: {
     page?: number
     size?: number
@@ -551,8 +498,7 @@ export async function listJobs(
   if (params.racketId) query.set('racketId', params.racketId)
   if (params.reelId) query.set('reelId', params.reelId)
   if (params.fullyPaid !== undefined) query.set('fullyPaid', String(params.fullyPaid))
-  const res = await fetch(`${API_BASE}/jobs?${query}`, { headers: authHeaders(token) })
-  await throwIfNotOk(res)
+  const res = await apiFetch(`/jobs?${query}`)
   return res.json()
 }
 
@@ -562,7 +508,6 @@ export async function listJobs(
  * stringing, and the inventory money metrics depend on the full set (ADR 0007).
  */
 export async function fetchAllJobs(
-  token: string,
   params: {
     stage?: JobStage
     customerId?: string
@@ -576,7 +521,7 @@ export async function fetchAllJobs(
   let page = 0
   // Guard against a misbehaving backend that never reports the last page.
   for (let guard = 0; guard < 1000; guard++) {
-    const res = await listJobs(token, { ...params, page, size: pageSize })
+    const res = await listJobs({ ...params, page, size: pageSize })
     all.push(...res.content)
     if (res.content.length === 0 || page + 1 >= res.totalPages) break
     page += 1
@@ -584,56 +529,31 @@ export async function fetchAllJobs(
   return all
 }
 
-export async function getJob(token: string, id: string): Promise<JobResponse> {
-  const res = await fetch(`${API_BASE}/jobs/${id}`, { headers: authHeaders(token) })
-  await throwIfNotOk(res)
+export async function getJob(id: string): Promise<JobResponse> {
+  const res = await apiFetch(`/jobs/${id}`)
   return res.json()
 }
 
-export async function createJob(token: string, data: CreateJobRequest): Promise<JobResponse> {
-  const res = await fetch(`${API_BASE}/jobs`, {
-    method: 'POST',
-    headers: authHeaders(token),
-    body: JSON.stringify(data),
-  })
-  await throwIfNotOk(res)
+export async function createJob(data: CreateJobRequest): Promise<JobResponse> {
+  const res = await apiFetch(`/jobs`, { method: 'POST', body: JSON.stringify(data) })
   return res.json()
 }
 
-export async function updateJob(
-  token: string,
-  id: string,
-  data: UpdateJobRequest,
-): Promise<JobResponse> {
-  const res = await fetch(`${API_BASE}/jobs/${id}`, {
-    method: 'PUT',
-    headers: authHeaders(token),
-    body: JSON.stringify(data),
-  })
-  await throwIfNotOk(res)
+export async function updateJob(id: string, data: UpdateJobRequest): Promise<JobResponse> {
+  const res = await apiFetch(`/jobs/${id}`, { method: 'PUT', body: JSON.stringify(data) })
   return res.json()
 }
 
-export async function changeJobStage(
-  token: string,
-  id: string,
-  stage: JobStage,
-): Promise<JobResponse> {
-  const res = await fetch(`${API_BASE}/jobs/${id}/stage`, {
+export async function changeJobStage(id: string, stage: JobStage): Promise<JobResponse> {
+  const res = await apiFetch(`/jobs/${id}/stage`, {
     method: 'PATCH',
-    headers: authHeaders(token),
     body: JSON.stringify({ stage }),
   })
-  await throwIfNotOk(res)
   return res.json()
 }
 
-export async function deleteJob(token: string, id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/jobs/${id}`, {
-    method: 'DELETE',
-    headers: authHeaders(token),
-  })
-  await throwIfNotOk(res)
+export async function deleteJob(id: string): Promise<void> {
+  await apiFetch(`/jobs/${id}`, { method: 'DELETE' })
 }
 
 // ── Payments ────────────────────────────────────────────────────────────────
@@ -666,15 +586,7 @@ export interface CreatePaymentRequest {
 }
 
 /** Record a Payment against a Job. Amount may be partial or exceed the Balance (a tip). */
-export async function createPayment(
-  token: string,
-  data: CreatePaymentRequest,
-): Promise<PaymentResponse> {
-  const res = await fetch(`${API_BASE}/payments`, {
-    method: 'POST',
-    headers: authHeaders(token),
-    body: JSON.stringify(data),
-  })
-  await throwIfNotOk(res)
+export async function createPayment(data: CreatePaymentRequest): Promise<PaymentResponse> {
+  const res = await apiFetch(`/payments`, { method: 'POST', body: JSON.stringify(data) })
   return res.json()
 }

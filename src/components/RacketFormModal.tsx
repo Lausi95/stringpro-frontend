@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import Modal from './Modal'
-import { useKeycloakToken } from '../lib/KeycloakContext'
 import {
   createRacket,
   updateRacket,
@@ -48,7 +47,6 @@ export default function RacketFormModal({
   onSaved,
   onDeleted,
 }: RacketFormModalProps) {
-  const token = useKeycloakToken()
   const [form, setForm] = useState<RacketFormState>(() => toForm(initial))
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -72,8 +70,8 @@ export default function RacketFormModal({
     try {
       const racket =
         mode === 'edit' && initial
-          ? await updateRacket(token, initial.id, payload)
-          : await createRacket(token, customerId, payload)
+          ? await updateRacket(initial.id, payload)
+          : await createRacket(customerId, payload)
       onSaved(racket)
     } catch {
       setFormError('Failed to save racket. Please try again.')
@@ -86,7 +84,7 @@ export default function RacketFormModal({
     setDeleting(true)
     setDeleteError(null)
     try {
-      await deleteRacket(token, initial.id)
+      await deleteRacket(initial.id)
       onDeleted()
     } catch (err: unknown) {
       const status = (err as { status?: number }).status

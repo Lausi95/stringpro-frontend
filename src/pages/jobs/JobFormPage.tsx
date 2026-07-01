@@ -1,7 +1,6 @@
 import { useState, useEffect, type CSSProperties } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { ChevronRight, X, Users, Scissors, Calendar } from 'lucide-react'
-import { useKeycloakToken } from '../../lib/KeycloakContext'
 import { useToast } from '../../components/Toast'
 import {
   listCustomers,
@@ -107,10 +106,8 @@ const money = (n: number) => `€ ${n.toFixed(2)}`
 
 /** Searchable customer picker (create mode only). */
 function CustomerPicker({
-  token,
   onSelect,
 }: {
-  token: string
   onSelect: (c: CustomerResponse) => void
 }) {
   const [query, setQuery] = useState('')
@@ -127,11 +124,11 @@ function CustomerPicker({
   useEffect(() => {
     if (!open) return
     setLoading(true)
-    listCustomers(token, { size: 8, name: debounced || undefined })
+    listCustomers({ size: 8, name: debounced || undefined })
       .then((d) => setResults(d.content))
       .catch(() => setResults([]))
       .finally(() => setLoading(false))
-  }, [token, debounced, open])
+  }, [debounced, open])
 
   return (
     <div className="customer-picker">
@@ -175,7 +172,6 @@ function CustomerPicker({
 export default function JobFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEdit = !!id
-  const token = useKeycloakToken()
   const navigate = useNavigate()
   const { showToast } = useToast()
   const [searchParams] = useSearchParams()
@@ -213,24 +209,24 @@ export default function JobFormPage() {
       setError(null)
       try {
         const [settings, reelsPage] = await Promise.all([
-          getSettings(token),
-          listReels(token, { size: 200 }),
+          getSettings(),
+          listReels({ size: 200 }),
         ])
         if (cancelled) return
         const activeReels = reelsPage.content.filter((r) => r.state !== 'USED_UP')
 
         if (isEdit && id) {
-          const job = await getJob(token, id)
+          const job = await getJob(id)
           const [cust, racket] = await Promise.all([
-            getCustomer(token, job.customerId),
-            getRacket(token, job.racketId),
+            getCustomer(job.customerId),
+            getRacket(job.racketId),
           ])
           // Make sure reels referenced by the job are selectable even if used up.
           const reelMap = new Map(activeReels.map((r) => [r.id, r]))
           const refIds = [job.mains.reelId, job.crosses?.reelId].filter(Boolean) as string[]
           const missing = refIds.filter((rid) => !reelMap.has(rid))
           const fetched = (
-            await Promise.all(missing.map((rid) => getReel(token, rid).catch(() => null)))
+            await Promise.all(missing.map((rid) => getReel(rid).catch(() => null)))
           ).filter(Boolean) as ReelResponse[]
           if (cancelled) return
           setReels([...activeReels, ...fetched])
@@ -253,7 +249,7 @@ export default function JobFormPage() {
           const pCustomer = searchParams.get('customerId')
           const pRacket = searchParams.get('racketId')
           if (pCustomer) {
-            const cust = await getCustomer(token, pCustomer).catch(() => null)
+            const cust = await getCustomer(pCustomer).catch(() => null)
             if (cust && !cancelled) {
               setCustomerSel({ id: cust.id, name: `${cust.firstName} ${cust.lastName}` })
               if (pRacket) setRacketId(pRacket)
@@ -272,7 +268,7 @@ export default function JobFormPage() {
     }
     // searchParams read once on mount; customer/racket prefill is intentional.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, id, isEdit])
+  }, [id, isEdit])
 
   // ── rackets for the chosen customer (create mode) ─────────────
   useEffect(() => {
@@ -282,11 +278,11 @@ export default function JobFormPage() {
       return
     }
     setRacketsLoading(true)
-    listRackets(token, customerSel.id)
+    listRackets(customerSel.id)
       .then(setRackets)
       .catch(() => setRackets([]))
       .finally(() => setRacketsLoading(false))
-  }, [token, customerSel, isEdit])
+  }, [customerSel, isEdit])
 
   function onMainsTensionChange(v: string) {
     setMainsTension(v)
@@ -377,11 +373,11 @@ export default function JobFormPage() {
     }
     try {
       if (isEdit && id) {
-        await updateJob(token, id, base)
+        await updateJob(id, base)
         showToast('Job updated')
         navigate(`/jobs/${id}`)
       } else {
-        await createJob(token, { customerId: customerSel!.id, racketId, ...base })
+        await createJob({ customerId: customerSel!.id, racketId, ...base })
         showToast('Job created')
         navigate('/')
       }
@@ -544,7 +540,6 @@ export default function JobFormPage() {
                     </div>
                   ) : (
                     <CustomerPicker
-                      token={token}
                       onSelect={(c) => {
                         setCustomerSel({ id: c.id, name: `${c.firstName} ${c.lastName}` })
                         setRacketId('')

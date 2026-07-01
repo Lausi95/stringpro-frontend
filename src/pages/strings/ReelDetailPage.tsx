@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
-import { useKeycloakToken } from '../../lib/KeycloakContext'
 import {
   getReel,
   deleteReel,
@@ -66,7 +65,6 @@ function sideLabel(job: JobResponse, reel: ReelResponse): string {
 
 export default function ReelDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const token = useKeycloakToken()
   const navigate = useNavigate()
 
   const [reel, setReel] = useState<ReelResponse | null>(null)
@@ -89,17 +87,17 @@ export default function ReelDetailPage() {
     if (!id) return
     setLoading(true)
     setError(null)
-    getReel(token, id)
+    getReel(id)
       .then(setReel)
       .catch(() => setError('Reel not found.'))
       .finally(() => setLoading(false))
-  }, [token, id])
+  }, [id])
 
   const loadJobs = useCallback(() => {
     if (!id) return
     setJobsLoading(true)
     setJobsError(null)
-    fetchAllJobs(token, { reelId: id })
+    fetchAllJobs({ reelId: id })
       .then(async (js) => {
         // Newest first by intake date.
         const sorted = [...js].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -109,14 +107,14 @@ export default function ReelDetailPage() {
         const [cs, rs] = await Promise.all([
           Promise.all(
             custIds.map((cid) =>
-              getCustomer(token, cid)
+              getCustomer(cid)
                 .then((c) => [cid, `${c.firstName} ${c.lastName}`] as const)
                 .catch(() => [cid, 'Unknown'] as const),
             ),
           ),
           Promise.all(
             rackIds.map((rid) =>
-              getRacket(token, rid)
+              getRacket(rid)
                 .then((r) => [rid, `${r.brand} ${r.model}`] as const)
                 .catch(() => [rid, 'Unknown'] as const),
             ),
@@ -127,7 +125,7 @@ export default function ReelDetailPage() {
       })
       .catch(() => setJobsError('Failed to load jobs for this reel.'))
       .finally(() => setJobsLoading(false))
-  }, [token, id])
+  }, [id])
 
   useEffect(() => {
     loadJobs()
@@ -139,7 +137,7 @@ export default function ReelDetailPage() {
     const prev = reel
     setReel({ ...reel, state: next }) // optimistic
     try {
-      const updated = await changeReelState(token, reel.id, next)
+      const updated = await changeReelState(reel.id, next)
       setReel(updated)
     } catch {
       setReel(prev)
@@ -153,7 +151,7 @@ export default function ReelDetailPage() {
     setDeleting(true)
     setDeleteError(null)
     try {
-      await deleteReel(token, id)
+      await deleteReel(id)
       navigate('/strings')
     } catch {
       setDeleting(false)

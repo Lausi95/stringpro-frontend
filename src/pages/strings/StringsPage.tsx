@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import { useKeycloakToken } from '../../lib/KeycloakContext'
 import {
   listReels,
   changeReelState,
@@ -64,7 +63,6 @@ function fmtDate(iso: string): string {
 }
 
 export default function StringsPage() {
-  const token = useKeycloakToken()
   const navigate = useNavigate()
 
   const [reels, setReels] = useState<ReelResponse[]>([])
@@ -87,20 +85,20 @@ export default function StringsPage() {
   useEffect(() => {
     setLoading(true)
     setFetchError(null)
-    listReels(token, { page: 0, size: FETCH_SIZE })
+    listReels({ page: 0, size: FETCH_SIZE })
       .then((data) => setReels(data.content))
       .catch(() => setFetchError('Failed to load reels.'))
       .finally(() => setLoading(false))
-  }, [token])
+  }, [])
 
   useEffect(() => {
     setJobsLoading(true)
     setJobsError(false)
-    fetchAllJobs(token)
+    fetchAllJobs()
       .then(setJobs)
       .catch(() => setJobsError(true))
       .finally(() => setJobsLoading(false))
-  }, [token])
+  }, [])
 
   const counts = {
     ALL: reels.length,
@@ -140,7 +138,7 @@ export default function StringsPage() {
     // Optimistic update; revert on failure.
     setReels((rs) => rs.map((r) => (r.id === reel.id ? { ...r, state: next } : r)))
     try {
-      const updated = await changeReelState(token, reel.id, next)
+      const updated = await changeReelState(reel.id, next)
       setReels((rs) => rs.map((r) => (r.id === reel.id ? updated : r)))
     } catch {
       setReels((rs) => rs.map((r) => (r.id === reel.id ? reel : r)))
@@ -154,7 +152,7 @@ export default function StringsPage() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await deleteReel(token, deleteTarget.id)
+      await deleteReel(deleteTarget.id)
       setReels((rs) => rs.filter((r) => r.id !== deleteTarget.id))
       setDeleteTarget(null)
     } catch {

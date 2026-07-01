@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useKeycloakToken } from '../../lib/KeycloakContext'
 import { useToast } from '../../components/Toast'
 import { isValidIban } from '../../lib/iban'
 import {
@@ -83,7 +82,6 @@ const EMPTY_FORM: SettingsForm = {
 }
 
 export default function SettingsPage() {
-  const token = useKeycloakToken()
   const { showToast } = useToast()
 
   const [form, setForm] = useState<SettingsForm>(EMPTY_FORM)
@@ -100,7 +98,7 @@ export default function SettingsPage() {
     let active = true
     setLoading(true)
     setFetchError(null)
-    getSettings(token)
+    getSettings()
       .then((s) => {
         if (!active) return
         const next = toForm(s)
@@ -117,7 +115,7 @@ export default function SettingsPage() {
     return () => {
       active = false
     }
-  }, [token, reloadKey])
+  }, [reloadKey])
 
   const set = useCallback(
     <K extends keyof SettingsForm>(key: K) =>
@@ -169,7 +167,7 @@ export default function SettingsPage() {
 
     setSaving(true)
     try {
-      const saved = await updateSettings(token, result.data)
+      const saved = await updateSettings(result.data)
       const next = toForm(saved)
       setForm(next)
       setBaseline(next)

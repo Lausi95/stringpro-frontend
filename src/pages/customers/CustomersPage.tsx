@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
-import { useKeycloakToken } from '../../lib/KeycloakContext'
 import { listCustomers, type CustomerResponse } from '../../lib/api'
 import CustomerFormModal from '../../components/CustomerFormModal'
 
 const PAGE_SIZE = 20
 
 export default function CustomersPage() {
-  const token = useKeycloakToken()
   const navigate = useNavigate()
 
   const [customers, setCustomers] = useState<CustomerResponse[]>([])
@@ -33,7 +31,7 @@ export default function CustomersPage() {
   useEffect(() => {
     setLoading(true)
     setFetchError(null)
-    listCustomers(token, { page, size: PAGE_SIZE, name: debouncedSearch || undefined })
+    listCustomers({ page, size: PAGE_SIZE, name: debouncedSearch || undefined })
       .then((data) => {
         setCustomers(data.content)
         setTotalElements(data.totalElements)
@@ -41,7 +39,7 @@ export default function CustomersPage() {
       })
       .catch(() => setFetchError('Failed to load customers.'))
       .finally(() => setLoading(false))
-  }, [token, page, debouncedSearch])
+  }, [page, debouncedSearch])
 
   function openAddModal() {
     setShowAddModal(true)

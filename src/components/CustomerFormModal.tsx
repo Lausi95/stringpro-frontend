@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import Modal from './Modal'
-import { useKeycloakToken } from '../lib/KeycloakContext'
 import {
   createCustomer,
   updateCustomer,
@@ -27,7 +26,6 @@ function toForm(c?: CustomerResponse): CustomerFormData {
 }
 
 export default function CustomerFormModal({ mode, initial, onClose, onSaved }: CustomerFormModalProps) {
-  const token = useKeycloakToken()
   const [form, setForm] = useState<CustomerFormData>(() => toForm(initial))
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -39,8 +37,8 @@ export default function CustomerFormModal({ mode, initial, onClose, onSaved }: C
     try {
       const customer =
         mode === 'edit' && initial
-          ? await updateCustomer(token, initial.id, form)
-          : await createCustomer(token, form)
+          ? await updateCustomer(initial.id, form)
+          : await createCustomer(form)
       onSaved(customer)
     } catch (err: unknown) {
       const status = (err as { status?: number }).status

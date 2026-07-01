@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Plus, ChevronRight } from 'lucide-react'
-import { useKeycloakToken } from '../../lib/KeycloakContext'
 import {
   getCustomer,
   deleteCustomer,
@@ -21,7 +20,6 @@ type RacketModalState = { mode: 'create' } | { mode: 'edit'; racket: RacketRespo
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const token = useKeycloakToken()
   const navigate = useNavigate()
 
   const [customer, setCustomer] = useState<CustomerResponse | null>(null)
@@ -41,21 +39,21 @@ export default function CustomerDetailPage() {
   useEffect(() => {
     if (!id) return
     setLoading(true)
-    getCustomer(token, id)
+    getCustomer(id)
       .then(setCustomer)
       .catch(() => setError('Customer not found.'))
       .finally(() => setLoading(false))
-  }, [token, id])
+  }, [id])
 
   const loadRackets = useCallback(() => {
     if (!id) return
     setRacketsLoading(true)
     setRacketsError(null)
-    listRackets(token, id)
+    listRackets(id)
       .then(setRackets)
       .catch(() => setRacketsError('Failed to load rackets.'))
       .finally(() => setRacketsLoading(false))
-  }, [token, id])
+  }, [id])
 
   useEffect(() => {
     loadRackets()
@@ -66,7 +64,7 @@ export default function CustomerDetailPage() {
     setDeleting(true)
     setDeleteError(null)
     try {
-      await deleteCustomer(token, id)
+      await deleteCustomer(id)
       navigate('/customers')
     } catch {
       setDeleting(false)

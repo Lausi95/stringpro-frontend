@@ -9,6 +9,7 @@ import {
   Scissors,
 } from 'lucide-react'
 import keycloak from '../lib/keycloak'
+import { logout } from '../lib/auth'
 import type { KeycloakTokenParsed } from 'keycloak-js'
 
 type ParsedToken = KeycloakTokenParsed & {
@@ -83,7 +84,7 @@ export default function AppShell() {
             </div>
             <button
               className="sidebar-logout"
-              onClick={() => keycloak.logout()}
+              onClick={() => logout()}
               title="Log out"
             >
               <LogOut size={15} />

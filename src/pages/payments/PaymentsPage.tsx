@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Euro } from 'lucide-react'
-import { useKeycloakToken } from '../../lib/KeycloakContext'
 import RecordPaymentModal from '../../components/RecordPaymentModal'
 import {
   fetchAllJobs,
@@ -21,7 +20,6 @@ const money = (n: number) => `€ ${n.toFixed(2)}`
 const balanceOf = (j: JobResponse) => Math.max(0, j.total - j.amountPaid)
 
 export default function PaymentsPage() {
-  const token = useKeycloakToken()
   const navigate = useNavigate()
 
   const [jobs, setJobs] = useState<JobResponse[]>([])
@@ -38,7 +36,7 @@ export default function PaymentsPage() {
     setLoading(true)
     setError(null)
     try {
-      const all = await fetchAllJobs(token, { fullyPaid: false })
+      const all = await fetchAllJobs({ fullyPaid: false })
       // Soonest / most overdue first.
       all.sort((a, b) => a.dueDate.localeCompare(b.dueDate))
       setJobs(all)
@@ -49,14 +47,14 @@ export default function PaymentsPage() {
       const [custs, racks] = await Promise.all([
         Promise.all(
           custIds.map((cid) =>
-            getCustomer(token, cid)
+            getCustomer(cid)
               .then((c) => [cid, `${c.firstName} ${c.lastName}`] as const)
               .catch(() => [cid, 'Unknown'] as const),
           ),
         ),
         Promise.all(
           rackIds.map((rid) =>
-            getRacket(token, rid)
+            getRacket(rid)
               .then((r) => [rid, `${r.brand} ${r.model}`] as const)
               .catch(() => [rid, 'Unknown'] as const),
           ),
@@ -70,7 +68,7 @@ export default function PaymentsPage() {
     } finally {
       setLoading(false)
     }
-  }, [token])
+  }, [])
 
   useEffect(() => {
     loadJobs()

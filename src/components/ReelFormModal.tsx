@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import Modal from './Modal'
-import { useKeycloakToken } from '../lib/KeycloakContext'
 import {
   createReel,
   updateReel,
@@ -56,7 +55,6 @@ function toForm(r?: ReelResponse): ReelFormState {
 }
 
 export default function ReelFormModal({ mode, initial, onClose, onSaved }: ReelFormModalProps) {
-  const token = useKeycloakToken()
   const [form, setForm] = useState<ReelFormState>(() => toForm(initial))
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -98,8 +96,8 @@ export default function ReelFormModal({ mode, initial, onClose, onSaved }: ReelF
     try {
       const reel =
         mode === 'edit' && initial
-          ? await updateReel(token, initial.id, data)
-          : await createReel(token, data)
+          ? await updateReel(initial.id, data)
+          : await createReel(data)
       onSaved(reel)
     } catch {
       setFormError('Failed to save reel. Please try again.')

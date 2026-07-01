@@ -46,7 +46,7 @@ StringPro is a React (latest) SPA for managing a tennis stringing business — j
 
 Keycloak realm: `https://auth.lausi95.net/realms/stringpro`
 
-The keycloak singleton (`src/lib/keycloak.ts`) is initialized with `onLoad: 'login-required'` in `main.tsx` before React mounts — the app never renders without a valid token. `KeycloakProvider` (`src/lib/KeycloakContext.tsx`) exposes the token via `useKeycloakToken()`. Every API call must include `Authorization: Bearer <token>` using that hook.
+The keycloak singleton (`src/lib/keycloak.ts`) is initialized by `initAuth()` (`src/lib/auth.ts`) in `main.tsx` before React mounts — the app never renders without a valid token. `initAuth()` seeds keycloak-js from a **Keycloak offline token persisted in `localStorage`** and refreshes it via a direct token-endpoint call so the installed PWA survives an app-kill (see `docs/adr/0015-persist-offline-token-localstorage.md`). There is **no** React token context — components that need identity read the singleton directly (as `AppShell` does for `keycloak.tokenParsed` / `keycloak.logout()`), and API calls get the bearer header from the central `apiFetch` wrapper in `api.ts`, not from a hook.
 
 Every route must be behind authentication; unauthenticated users are redirected to the Keycloak login page. Do not use `@react-keycloak/web` — the project uses raw `keycloak-js`.
 
@@ -54,22 +54,22 @@ Every route must be behind authentication; unauthenticated users are redirected 
 
 **Always consult `http://localhost:8080/v3/api-docs` (OpenAPI/Swagger) before implementing any backend integration.**
 
-The dev server proxies `/api/*` → `http://localhost:8080/*` (configured in `vite.config.ts`, which strips the `/api` prefix). Pages call the API via `API_BASE = import.meta.env.VITE_API_BASE ?? '/api'`. Always attach `Authorization: Bearer ${token}` using `useKeycloakToken()`.
+The dev server proxies `/api/*` → `http://localhost:8080/*` (configured in `vite.config.ts`, which strips the `/api` prefix). Pages call the API via `API_BASE = import.meta.env.VITE_API_BASE ?? '/api'`. Auth is applied centrally — pages never attach the bearer header themselves.
 
 ### API layer (`src/lib/api.ts`)
 
 All backend calls live in `src/lib/api.ts` as standalone async functions — **pages never call `fetch` directly**. Follow the existing shape when adding endpoints:
 
-- Each function takes `token` as its **first argument**, then ids, then a data object.
+- Functions take **ids first, then a data object** — **no `token` argument**. Auth is centralized in the `apiFetch(path, init)` wrapper, which refreshes the token just-in-time (`keycloak.updateToken(30)`, no background loop) and attaches `Authorization: Bearer`. Route every new endpoint through `apiFetch`.
 - Request/response types are co-located here and named `<Entity>Response`, `<Entity>FormData`, and `Paged<Entity>Response` (Spring-style paged envelope: `{ content, totalElements, totalPages, page, size }`).
-- Use the shared `authHeaders(token)` and `throwIfNotOk(res)` helpers. Errors throw an `ApiError` carrying a numeric `.status`.
+- `apiFetch` throws an `ApiError` carrying a numeric `.status` on any non-2xx; on a failed token refresh it triggers re-login and throws `.status = 401`.
 
 Consult `http://localhost:8080/v3/api-docs` for the exact request/response schema before writing a new function.
 
 ### Page conventions
 
 - Routes live under `src/pages/<area>/`; shared building blocks under `src/components/`. `App.tsx` wires routes inside a single `<AppShell />` layout route. Unbuilt routes render the local `NotImplemented` stub in `App.tsx` — replace the stub with a real page when implementing.
-- Data fetching is `useEffect` + `useState` keyed on `[token, ...params]` (no data-fetching library). Every page tracks `loading` / error / empty as distinct render branches — match the pattern in `CustomersPage.tsx`.
+- Data fetching is `useEffect` + `useState` keyed on `[...params]` (no data-fetching library; no `token` in deps — auth is handled inside `api.ts`). Every page tracks `loading` / error / empty as distinct render branches — match the pattern in `CustomersPage.tsx`.
 - Debounce search inputs (~300ms) and reset pagination to page 0 on a new query, as in `CustomersPage.tsx`.
 - Modals use the shared `Modal` component (`src/components/Modal.tsx`) — backdrop-click closes; pass body/footer as children. Entity create/edit modals (e.g. `CustomerFormModal`) take a `mode: 'create' | 'edit'` prop and an `onSaved` callback.
 

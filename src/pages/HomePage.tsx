@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import { useKeycloakToken } from '../lib/KeycloakContext'
 import {
   listJobs,
   listReels,
@@ -27,7 +26,6 @@ function formatDate(iso: string): string {
 const money = (n: number) => `€ ${n.toFixed(2)}`
 
 export default function HomePage() {
-  const token = useKeycloakToken()
   const navigate = useNavigate()
 
   const [jobs, setJobs] = useState<JobResponse[]>([])
@@ -48,7 +46,7 @@ export default function HomePage() {
 
   // Prefetch reel labels + stage counts once.
   useEffect(() => {
-    listReels(token, { size: 200 })
+    listReels({ size: 200 })
       .then((page) => {
         page.content.forEach((r) => reels.current.set(r.id, `${r.brand} ${r.model} · ${r.gauge} mm`))
         setResolveTick((t) => t + 1)
@@ -57,16 +55,16 @@ export default function HomePage() {
 
     Promise.all(
       CARD_STAGES.map((stage) =>
-        listJobs(token, { stage, size: 1 }).then((p) => [stage, p.totalElements] as const).catch(() => [stage, 0] as const),
+        listJobs({ stage, size: 1 }).then((p) => [stage, p.totalElements] as const).catch(() => [stage, 0] as const),
       ),
     ).then((entries) => setCounts(Object.fromEntries(entries)))
-  }, [token])
+  }, [])
 
   const loadJobs = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await listJobs(token, {
+      const data = await listJobs({
         page,
         size: PAGE_SIZE,
         stage: stageFilter ?? undefined,
@@ -81,14 +79,14 @@ export default function HomePage() {
       const [custs, racks] = await Promise.all([
         Promise.all(
           custIds.map((cid) =>
-            getCustomer(token, cid)
+            getCustomer(cid)
               .then((c) => [cid, `${c.firstName} ${c.lastName}`] as const)
               .catch(() => [cid, 'Unknown'] as const),
           ),
         ),
         Promise.all(
           rackIds.map((rid) =>
-            getRacket(token, rid)
+            getRacket(rid)
               .then((r) => [rid, `${r.brand} ${r.model}`] as const)
               .catch(() => [rid, 'Unknown'] as const),
           ),
@@ -102,7 +100,7 @@ export default function HomePage() {
     } finally {
       setLoading(false)
     }
-  }, [token, page, stageFilter])
+  }, [page, stageFilter])
 
   useEffect(() => {
     loadJobs()
