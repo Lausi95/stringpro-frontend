@@ -862,6 +862,14 @@ input, select, textarea { font: inherit; }
 .breadcrumb svg { width: 12px; height: 12px; stroke-width: 2; }
 
 /* ─── responsive ──────────────────────────────────── */
+/* iOS Safari auto-zooms a focused field whose font-size is < 16px and never
+   zooms back out, leaving the view permanently magnified. Bump fields to 16px
+   on touch devices to remove the trigger; desktop keeps its 14px design.
+   (pointer: coarse) rather than a width breakpoint so it also holds in
+   landscape, where an iPhone's width exceeds the mobile breakpoint. */
+@media (pointer: coarse) {
+  .input, .select, .textarea, .search-input { font-size: var(--text-base); }
+}
 @media (prefers-reduced-motion: no-preference) {
   .btn, .nav-item, .filter-tab, .data-table tbody tr, .badge,
   .modal, .input, .select, .textarea, .search-input { transition-timing-function: ease-out; }
