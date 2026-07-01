@@ -431,6 +431,7 @@ input, select, textarea { font: inherit; }
 
 /* summary card */
 .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-4); margin-bottom: var(--sp-8); }
+.summary-cards.summary-cards-single { grid-template-columns: minmax(220px, 320px); }
 .summary-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -896,6 +897,7 @@ input, select, textarea { font: inherit; }
   .mobile-nav { display: block; }
   .main-content { margin-inline-start: 0; padding-bottom: 72px; }
   .summary-cards { grid-template-columns: repeat(2, 1fr); gap: var(--sp-3); }
+  .summary-cards.summary-cards-single { grid-template-columns: 1fr; }
   .summary-card { padding: var(--sp-4); }
   .summary-card-value { font-size: 1.4rem; }
   .page-body { padding: var(--sp-4); }

@@ -92,7 +92,7 @@ export default function PaymentsPage() {
       </div>
 
       <div className="page-body">
-        <div className="summary-cards" style={{ gridTemplateColumns: 'minmax(220px, 320px)' }}>
+        <div className="summary-cards summary-cards-single">
           <div className="summary-card warn">
             <div className="summary-card-label">Outstanding</div>
             <div className="summary-card-value warn" style={{ fontVariantNumeric: 'tabular-nums' }}>
