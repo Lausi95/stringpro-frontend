@@ -78,6 +78,12 @@ _Avoid_: Forbidding amounts above the Balance, modelling a tip as a separate fie
 **Recording a Payment**: The act of capturing a Payment against a Job, via the **Record Payment** form. The verb is *record* / *capture*, never "mark paid" — a recorded Payment may be partial, exact, or an overpayment.
 _Avoid_: "Mark as paid", "settle"
 
+**Payment Request**: A ready-to-send message the Stringer shares with a Customer telling them what they owe and how to pay. It is scoped to a **single Job** — it states that Job's [[Balance]] and lists the ways to pay (PayPal, bank transfer, cash), corresponding to the [[Payment Method]] enum. It is generated on demand from the Job plus [[Settings]] (the Stringer's name and IBAN) and shared via the device share sheet or clipboard; it is **read-only and never persisted** — sharing a Payment Request is not the same as recording a [[Payment]], and creates no backend record. The Stringer picks the **message language** (German or English) each time before sharing. A pay method whose details are missing (e.g. no IBAN in Settings) is simply omitted from the message.
+_Avoid_: Invoice, bill, dunning; treating a shared Payment Request as a recorded Payment; a per-Customer total (a Payment Request is per-Job, like Balance)
+
+**Message language**: The language a [[Payment Request]] is written in — **German** or **English**, chosen per share. It defaults to German and is a presentation choice for the shared text only; it does not change any stored data or UI language.
+_Avoid_: Locale, i18n setting, app language
+
 ### Configuration
 
 **Settings**: The single global configuration record for the installation, owned by the Stringer. It consists of exactly: the Service Fee, and the Stringer's identity/contact details (full name, email, IBAN, address). There is no payment-method configuration in Settings — the [[Payment Method]] is a fixed enum carried per Payment, not a configurable Setting. The String Fee is *not* a Setting; it lives per Reel. Settings is a singleton (one per installation), always readable (defaults until first saved).

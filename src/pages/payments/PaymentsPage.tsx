@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Euro } from 'lucide-react'
+import { Euro, Share2 } from 'lucide-react'
 import RecordPaymentModal from '../../components/RecordPaymentModal'
+import SharePaymentRequestModal from '../../components/SharePaymentRequestModal'
 import {
   fetchAllJobs,
   getCustomer,
@@ -26,6 +27,7 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [payingJob, setPayingJob] = useState<JobResponse | null>(null)
+  const [sharingJob, setSharingJob] = useState<JobResponse | null>(null)
 
   // Name caches (refs so they persist without re-fetching); tick to force re-render.
   const customers = useRef<Map<string, string>>(new Map())
@@ -176,14 +178,24 @@ export default function PaymentsPage() {
                         )}
                       </td>
                       <td className="actions-col" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          className="btn btn-sm btn-secondary btn-icon"
-                          onClick={() => setPayingJob(job)}
-                          aria-label="Record payment"
-                          title="Record payment"
-                        >
-                          <Euro />
-                        </button>
+                        <div style={{ display: 'flex', gap: 'var(--sp-2)', justifyContent: 'flex-end' }}>
+                          <button
+                            className="btn btn-sm btn-secondary btn-icon"
+                            onClick={() => setSharingJob(job)}
+                            aria-label="Share payment info"
+                            title="Share payment info"
+                          >
+                            <Share2 />
+                          </button>
+                          <button
+                            className="btn btn-sm btn-secondary btn-icon"
+                            onClick={() => setPayingJob(job)}
+                            aria-label="Record payment"
+                            title="Record payment"
+                          >
+                            <Euro />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -206,6 +218,15 @@ export default function PaymentsPage() {
           customerName={customers.current.get(payingJob.customerId)}
           onClose={() => setPayingJob(null)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {sharingJob && (
+        <SharePaymentRequestModal
+          job={sharingJob}
+          customerName={customers.current.get(sharingJob.customerId)}
+          racketName={rackets.current.get(sharingJob.racketId)}
+          onClose={() => setSharingJob(null)}
         />
       )}
     </>
