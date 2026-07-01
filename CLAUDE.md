@@ -39,7 +39,7 @@ StringPro is a React (latest) SPA for managing a tennis stringing business — j
 | Environment | URL |
 |---|---|
 | Local API | `http://localhost:8080` |
-| Production API | `https://backend.stringpro.lausi95.net` |
+| Production API | `https://stringpro-backend.lausi95.net` |
 | API docs (OpenAPI/Swagger) | `http://localhost:8080/v3/api-docs` |
 
 ## Authentication

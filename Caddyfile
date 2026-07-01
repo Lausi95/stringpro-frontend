@@ -1,0 +1,51 @@
+{
+	# TLS is terminated by the host reverse proxy; this container speaks plain
+	# HTTP only. Without this, Caddy would try to provision Let's Encrypt certs
+	# for a hostname it cannot validate and fail to start.
+	auto_https off
+	admin off
+	persist_config off
+}
+
+:8080 {
+	# Structured access logs as one JSON line per request, straight to stdout.
+	# The host Datadog agent collects the container's stdout; no in-image agent.
+	log {
+		output stdout
+		format json
+	}
+
+	encode zstd gzip
+
+	# Same-origin API: the browser calls /api/* on this origin and Caddy proxies
+	# to the public backend. `handle_path` strips the /api prefix, mirroring the
+	# dev Vite proxy (rewrite /^\/api/ -> ''). The upstream Host header must be
+	# the backend's own domain so the host TLS proxy routes it (SNI + vhost).
+	# Backend is overridable at `docker run` time via env, defaulted for prod.
+	handle_path /api/* {
+		reverse_proxy {$BACKEND_ORIGIN:https://stringpro-backend.lausi95.net} {
+			header_up Host {$BACKEND_HOST:stringpro-backend.lausi95.net}
+		}
+	}
+
+	# Static SPA.
+	handle {
+		root * /srv
+
+		# Content-hashed assets (Vite emits a hash in the filename) — a change is
+		# a new filename, so these are safe to cache forever. Covers /assets/* and
+		# the hash-named Workbox runtime that sw.js imports.
+		@immutable path /assets/* /workbox-*.js
+		header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+		# Stable-named entry points must revalidate every load, otherwise the
+		# autoUpdate PWA (ADR 0011) would stay pinned to a stale deploy.
+		@revalidate path / /index.html /sw.js /manifest.webmanifest
+		header @revalidate Cache-Control "no-cache"
+
+		# react-router history fallback: deep links (e.g. /jobs/42) resolve to the
+		# app shell. Scoped inside `handle` so it never shadows /api/* above.
+		try_files {path} /index.html
+		file_server
+	}
+}
