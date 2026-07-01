@@ -1,0 +1,27 @@
+# Managed by Ansible (ansible/site.yml). Do not edit on the server.
+# See docs/adr/0014-cicd-github-actions-ghcr-ansible-traefik.md
+services:
+  frontend:
+    image: {{ image }}:${IMAGE_TAG}
+    container_name: stringpro-frontend
+    restart: unless-stopped
+    # Backend target lives here (not the image default) so it's visible and
+    # pinnable at the deploy layer. Caddy proxies same-origin /api -> this.
+    environment:
+      BACKEND_ORIGIN: "{{ backend_origin }}"
+      BACKEND_HOST: "{{ backend_host }}"
+    networks:
+      - {{ traefik_network }}
+    # No published ports: Traefik reaches the container over the shared network.
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ traefik_network }}"
+      - "traefik.http.routers.stringpro.rule=Host(`{{ domain }}`)"
+      - "traefik.http.routers.stringpro.entrypoints=websecure"
+      - "traefik.http.routers.stringpro.tls.certresolver={{ certresolver }}"
+      - "traefik.http.services.stringpro.loadbalancer.server.port=8080"
+
+# Owned by the Traefik stack; this compose file only attaches to it.
+networks:
+  {{ traefik_network }}:
+    external: true

@@ -1,0 +1,82 @@
+# Build → push to GHCR → deploy via Ansible onto the Traefik VServer.
+# See docs/adr/0014-cicd-github-actions-ghcr-ansible-traefik.md
+name: deploy
+
+on:
+  push:
+    branches: [main]
+
+# Serialize deploys: a newer push waits for an in-flight run to finish rather
+# than racing the compose stack on the server.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/lausi95/stringpro-frontend
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # push to GHCR with the built-in GITHUB_TOKEN
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Immutable per-commit tag (what the server pins) + moving latest (humans).
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Ansible + community.docker
+        run: |
+          pip install --upgrade ansible-core
+          ansible-galaxy collection install -r ansible/requirements.yml
+
+      # Dedicated deploy key + pinned host key, both from GHA secrets. The repo
+      # never carries either. known_hosts gives a verified fingerprint (no TOFU).
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          install -m 600 /dev/null ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy
+        working-directory: ansible
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "True"
+          ANSIBLE_SSH_COMMON_ARGS: "-o UserKnownHostsFile=/home/runner/.ssh/known_hosts -o StrictHostKeyChecking=yes"
+        run: |
+          ansible-playbook site.yml \
+            --private-key ~/.ssh/deploy_key \
+            -e "image_tag=${{ github.sha }}"

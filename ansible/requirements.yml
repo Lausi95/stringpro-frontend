@@ -1,0 +1,5 @@
+# Ansible Galaxy collections the playbook depends on.
+# Installed on the CI runner via: ansible-galaxy collection install -r ansible/requirements.yml
+collections:
+  - name: community.docker
+    version: ">=3.8.0" # docker_compose_v2 `wait:` (block until healthy) needs >= 3.8

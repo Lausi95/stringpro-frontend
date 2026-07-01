@@ -1,0 +1,60 @@
+---
+# Deploy the StringPro frontend container behind the server's existing Traefik.
+# See docs/adr/0014-cicd-github-actions-ghcr-ansible-traefik.md
+- name: Deploy stringpro-frontend
+  hosts: web
+  gather_facts: false
+
+  vars:
+    app_dir: "/home/{{ ansible_user }}/stringpro-frontend"
+    image: ghcr.io/lausi95/stringpro-frontend
+    # image_tag is passed at run time: -e image_tag=<git-sha>
+    domain: stringpro.lausi95.net
+    traefik_network: traefik
+    certresolver: letsencrypt
+    backend_origin: https://stringpro-backend.lausi95.net
+    backend_host: stringpro-backend.lausi95.net
+
+  tasks:
+    - name: Fail fast if image_tag was not provided
+      ansible.builtin.assert:
+        that: image_tag is defined and image_tag | length > 0
+        fail_msg: "image_tag must be passed (e.g. -e image_tag=<git-sha>)"
+
+    - name: Ensure application directory exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Template compose file
+      ansible.builtin.template:
+        src: docker-compose.yml.j2
+        dest: "{{ app_dir }}/docker-compose.yml"
+        mode: "0644"
+
+    - name: Template .env (pins the image tag for this deploy)
+      ansible.builtin.template:
+        src: env.j2
+        dest: "{{ app_dir }}/.env"
+        mode: "0644"
+
+    # pull: always fetches the pinned digest; wait: true blocks until the
+    # container reports healthy against the Dockerfile HEALTHCHECK, failing the
+    # deploy otherwise. This is the deploy-verification gate (ADR 0014).
+    - name: Pull and bring up the stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dir }}"
+        pull: always
+        state: present
+        wait: true
+        wait_timeout: 120
+        remove_orphans: true
+
+    # Housekeeping: drop dangling images left behind by superseded deploys so
+    # the disk doesn't fill up over time.
+    - name: Prune dangling images
+      community.docker.docker_prune:
+        images: true
+        images_filters:
+          dangling: true
