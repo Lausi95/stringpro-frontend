@@ -100,7 +100,6 @@ export default function RecordPaymentModal({ job, customerName, onClose, onSaved
               min="0.01"
               step="0.01"
               required
-              autoFocus
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
