@@ -95,7 +95,8 @@ export interface ReelFormData {
 export interface SettingsResponse {
   serviceFee: number
   fullName: string
-  email: string
+  /** Bare PayPal.Me username (e.g. "TLausmann"), not an email or a paypal.me URL. */
+  paypalHandle: string
   iban: string
   address: string
   /** ISO date-time; absent/zero until the settings have been saved at least once. */
@@ -105,7 +106,7 @@ export interface SettingsResponse {
 export interface SettingsFormData {
   serviceFee: number
   fullName: string
-  email: string
+  paypalHandle: string
   iban: string
   address: string
 }

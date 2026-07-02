@@ -13,24 +13,40 @@ import './SettingsPage.css'
 interface SettingsForm {
   serviceFee: string
   fullName: string
-  email: string
+  paypalHandle: string
   iban: string
   address: string
 }
 
 interface FieldErrors {
   serviceFee?: string
-  email?: string
+  paypalHandle?: string
   iban?: string
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+/** A stored PayPal Handle is the bare PayPal.Me username: letters and digits only. */
+const PAYPAL_HANDLE_RE = /^[A-Za-z0-9]{1,20}$/
+
+/**
+ * Reduce whatever the Stringer typed to the bare PayPal.Me username:
+ * drop a `paypal.me/` (or full URL) prefix and a leading `@` so a pasted
+ * link still yields a working handle. See CONTEXT.md → PayPal Handle.
+ */
+function normalizePaypalHandle(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^https?:\/\//i, '')
+    .replace(/^(www\.)?paypal\.me\//i, '')
+    .replace(/^@/, '')
+    .replace(/\/.*$/, '')
+    .trim()
+}
 
 function toForm(s: SettingsResponse): SettingsForm {
   return {
     serviceFee: s.serviceFee != null ? String(s.serviceFee) : '',
     fullName: s.fullName ?? '',
-    email: s.email ?? '',
+    paypalHandle: s.paypalHandle ?? '',
     iban: s.iban ?? '',
     address: s.address ?? '',
   }
@@ -48,7 +64,7 @@ function isDirty(form: SettingsForm, baseline: SettingsForm): boolean {
   return (
     !feesEqual(form.serviceFee, baseline.serviceFee) ||
     form.fullName.trim() !== baseline.fullName.trim() ||
-    form.email.trim() !== baseline.email.trim() ||
+    normalizePaypalHandle(form.paypalHandle) !== normalizePaypalHandle(baseline.paypalHandle) ||
     form.iban.replace(/\s+/g, '').toUpperCase() !==
       baseline.iban.replace(/\s+/g, '').toUpperCase() ||
     form.address.trim() !== baseline.address.trim()
@@ -76,7 +92,7 @@ function formatSavedAt(d: Date): string {
 const EMPTY_FORM: SettingsForm = {
   serviceFee: '',
   fullName: '',
-  email: '',
+  paypalHandle: '',
   iban: '',
   address: '',
 }
@@ -136,9 +152,9 @@ export default function SettingsPage() {
       nextErrors.serviceFee = 'Enter a service fee of 0 or more.'
     }
 
-    const email = form.email.trim()
-    if (email && !EMAIL_RE.test(email)) {
-      nextErrors.email = 'Enter a valid email address.'
+    const paypalHandle = normalizePaypalHandle(form.paypalHandle)
+    if (paypalHandle && !PAYPAL_HANDLE_RE.test(paypalHandle)) {
+      nextErrors.paypalHandle = 'Use only letters and numbers (your PayPal.Me username).'
     }
 
     const iban = form.iban.replace(/\s+/g, '').toUpperCase()
@@ -154,7 +170,7 @@ export default function SettingsPage() {
       data: {
         serviceFee: feeNum,
         fullName: form.fullName.trim(),
-        email,
+        paypalHandle,
         iban,
         address: form.address.trim(),
       },
@@ -255,16 +271,20 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="field">
-                  <label htmlFor="stringer-email">Email</label>
+                  <label htmlFor="stringer-paypal">PayPal Handle</label>
                   <input
-                    id="stringer-email"
-                    type="email"
-                    className={`input${errors.email ? ' input-error' : ''}`}
-                    placeholder="you@example.com"
-                    value={form.email}
-                    onChange={set('email')}
+                    id="stringer-paypal"
+                    type="text"
+                    className={`input${errors.paypalHandle ? ' input-error' : ''}`}
+                    placeholder="TLausmann"
+                    autoComplete="off"
+                    value={form.paypalHandle}
+                    onChange={set('paypalHandle')}
                   />
-                  {errors.email && <div className="field-error">{errors.email}</div>}
+                  <div className="field-hint">
+                    Your PayPal.Me username — used to build the payment link in a Payment Request.
+                  </div>
+                  {errors.paypalHandle && <div className="field-error">{errors.paypalHandle}</div>}
                 </div>
                 <div className="field">
                   <label htmlFor="stringer-iban">IBAN</label>
@@ -277,7 +297,7 @@ export default function SettingsPage() {
                     value={form.iban}
                     onChange={set('iban')}
                   />
-                  <div className="field-hint">Shown on invoices and future payment emails.</div>
+                  <div className="field-hint">Shown on the bank-transfer line of a Payment Request.</div>
                   {errors.iban && <div className="field-error">{errors.iban}</div>}
                 </div>
                 <div className="field">

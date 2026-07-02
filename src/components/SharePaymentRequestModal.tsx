@@ -15,19 +15,19 @@ interface SharePaymentRequestModalProps {
 
 const balanceOf = (j: JobResponse) => Math.max(0, j.total - j.amountPaid)
 
-type Identity = Pick<SettingsResponse, 'fullName' | 'iban'>
+type Identity = Pick<SettingsResponse, 'fullName' | 'iban' | 'paypalHandle'>
 
 export default function SharePaymentRequestModal({ job, customerName, racketName, onClose }: SharePaymentRequestModalProps) {
   const [lang, setLang] = useState<MessageLanguage>('de')
   const [settings, setSettings] = useState<Identity | null>(null)
   const [copied, setCopied] = useState(false)
 
-  // Load the Stringer's name + IBAN for the pay-details; degrade to blanks on failure.
+  // Load the Stringer's pay-details (name, IBAN, PayPal Handle); degrade to blanks on failure.
   useEffect(() => {
     let alive = true
     getSettings()
-      .then((s) => alive && setSettings({ fullName: s.fullName, iban: s.iban }))
-      .catch(() => alive && setSettings({ fullName: '', iban: '' }))
+      .then((s) => alive && setSettings({ fullName: s.fullName, iban: s.iban, paypalHandle: s.paypalHandle }))
+      .catch(() => alive && setSettings({ fullName: '', iban: '', paypalHandle: '' }))
     return () => {
       alive = false
     }

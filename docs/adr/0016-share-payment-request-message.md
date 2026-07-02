@@ -33,3 +33,15 @@ future reader doesn't mistake it for a bug.
 Consequence: the shared link always points at the `TLausmann` PayPal account
 regardless of who runs the app, until the Settings field lands. Acceptable for a
 single-operator app that is, in fact, run by that account holder.
+
+## Update (stopgap retired)
+
+Settings now carries a `paypalHandle` field (it replaced the previously-unused
+`email` field — see [[PayPal Handle]] in `CONTEXT.md`), so the hardcoded
+`PAYPAL_ME_USERNAME` constant is **gone**. `buildPaymentRequest` reads
+`settings.paypalHandle` and builds `https://paypal.me/<handle>/<amount>EUR` from
+it. The handle is the bare PayPal.Me username; Settings strips a leading `@` or a
+`paypal.me/` prefix on save so a pasted link still works. Consistent with the
+missing-IBAN rule, a **blank PayPal Handle now omits the PayPal line** entirely
+rather than emitting a broken `paypal.me//<amount>EUR` link. The backend field is
+`paypalHandle` (not `paypalMe`, as this ADR originally guessed).
