@@ -954,6 +954,15 @@ input, select, textarea { font: inherit; }
   .data-table.data-table-payments th.actions-col,
   .data-table.data-table-payments td.actions-col { display: table-cell; }
 
+  /* Reel detail "Jobs using this reel": drop Tension + Intake on mobile, but
+     re-show Earned (the num-col) — it's the reel's per-job revenue and would
+     otherwise be hidden by the generic nth-child(n+5) rule above. The .num-col
+     override is specificity (0,3,1) vs that rule's (0,2,1), so it wins; Stage
+     (col 5) has no override and stays hidden. */
+  .data-table.data-table-reeljobs .col-collapse { display: none; }
+  .data-table.data-table-reeljobs th.num-col,
+  .data-table.data-table-reeljobs td.num-col { display: table-cell; }
+
   /* customer detail overview stacks to a single column */
   .customer-overview { grid-template-columns: 1fr; gap: var(--sp-3); }
 

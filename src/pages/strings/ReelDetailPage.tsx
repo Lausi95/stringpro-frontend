@@ -304,13 +304,13 @@ export default function ReelDetailPage() {
           </div>
         ) : (
           <div className="data-table-wrap">
-            <table className="data-table">
+            <table className="data-table data-table-reeljobs">
               <thead>
                 <tr>
                   <th>Customer · Racket</th>
                   <th>Side</th>
-                  <th>Tension</th>
-                  <th>Intake</th>
+                  <th className="col-collapse">Tension</th>
+                  <th className="col-collapse">Intake</th>
                   <th>Stage</th>
                   <th className="num-col">Earned</th>
                 </tr>
@@ -343,10 +343,10 @@ export default function ReelDetailPage() {
                           <div className="cell-secondary">{rackets.get(job.racketId) ?? '…'}</div>
                         </td>
                         <td><span className="cell-mono">{sideLabel(job, reel)}</span></td>
-                        <td>
+                        <td className="col-collapse">
                           <span className="cell-mono">{job.mainsTension} / {job.crossesTension} kg</span>
                         </td>
-                        <td><span className="cell-mono">{fmtDate(job.createdAt)}</span></td>
+                        <td className="col-collapse"><span className="cell-mono">{fmtDate(job.createdAt)}</span></td>
                         <td>
                           <span className={`badge ${JOB_STAGE_BADGE_CLASS[job.stage]}`}>
                             {JOB_STAGE_LABELS[job.stage]}
