@@ -13,7 +13,7 @@
 
 .job-form-aside {
   position: sticky;
-  top: var(--sp-8);
+  top: 0;
 }
 
 .form-section-title {
@@ -21,6 +21,20 @@
   align-items: center;
   gap: var(--sp-2);
   font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+/* Running total echoed in the sticky modal footer. */
+.job-form-total {
+  font-size: var(--text-sm);
+  color: var(--fg-muted);
+}
+.job-form-total strong {
+  margin-inline-start: var(--sp-2);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--fg);
 }

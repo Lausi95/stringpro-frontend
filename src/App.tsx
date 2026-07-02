@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import AppShell from './components/AppShell'
 import InstallHint from './components/InstallHint'
 import HomePage from './pages/HomePage'
-import JobFormPage from './pages/jobs/JobFormPage'
 import JobDetailPage from './pages/jobs/JobDetailPage'
 import CustomersPage from './pages/customers/CustomersPage'
 import CustomerDetailPage from './pages/customers/CustomerDetailPage'
@@ -17,8 +16,6 @@ export default function App() {
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<HomePage />} />
-          <Route path="/jobs/new" element={<JobFormPage />} />
-          <Route path="/jobs/:id/edit" element={<JobFormPage />} />
           <Route path="/jobs/:id" element={<JobDetailPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/customers/:id" element={<CustomerDetailPage />} />

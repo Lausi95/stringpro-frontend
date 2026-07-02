@@ -852,6 +852,46 @@ input, select, textarea { font: inherit; }
 .modal-close svg { width: 18px; height: 18px; }
 .modal-footer { display: flex; gap: var(--sp-3); justify-content: flex-end; margin-top: var(--sp-6); padding-top: var(--sp-6); border-top: 1px solid var(--border); }
 
+/* ─── large modal (size="lg", e.g. the Job form) ──────
+   A flex-column panel: fixed header, scrollable body, sticky footer — at every
+   breakpoint, so a tall form never buries its Save button behind a scroll. */
+.modal.modal-lg {
+  width: min(900px, 90vw);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* When the lg content is a single <form>, let the form be the flex column so its
+   body scrolls and its footer stays pinned. */
+.modal-lg > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.modal-lg .modal-header {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+  padding: var(--sp-6) var(--sp-8) var(--sp-4);
+}
+.modal-lg .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--sp-2) var(--sp-8) var(--sp-6);
+}
+.modal-lg .modal-footer {
+  flex: 0 0 auto;
+  position: static;
+  margin: 0;
+  padding: var(--sp-5) var(--sp-8) calc(var(--sp-5) + env(safe-area-inset-bottom));
+  background: var(--surface);
+  justify-content: space-between;
+  align-items: center;
+}
+
 /* ─── price summary card (new job) ───────────────── */
 .price-summary {
   background: var(--surface-tinted);
@@ -1012,5 +1052,14 @@ input, select, textarea { font: inherit; }
     padding: var(--sp-4) var(--sp-5) calc(var(--sp-4) + env(safe-area-inset-bottom));
     background: var(--surface);
   }
+  /* the lg modal is already a flex-column bottom sheet (its footer is pinned by
+     flex, not sticky) — just let it span the full width like the default sheet. */
+  .modal.modal-lg {
+    width: 100%;
+    max-width: 100%;
+  }
+  .modal-lg .modal-header { padding-inline: var(--sp-5); }
+  .modal-lg .modal-body { padding-inline: var(--sp-5); }
+  .modal-lg .modal-footer { padding-inline: var(--sp-5); }
 }
 

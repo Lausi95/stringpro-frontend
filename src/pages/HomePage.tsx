@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import {
   listJobs,
@@ -13,6 +13,7 @@ import {
   type JobStage,
   type StringSideResponse,
 } from '../lib/api'
+import JobFormModal from '../components/JobFormModal'
 
 const PAGE_SIZE = 20
 
@@ -37,12 +38,22 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null)
 
   const [counts, setCounts] = useState<Record<string, number>>({})
+  const [showCreate, setShowCreate] = useState(false)
 
   // Name caches (refs so they persist across pages without re-fetching).
   const customers = useRef<Map<string, string>>(new Map())
   const rackets = useRef<Map<string, string>>(new Map())
   const reels = useRef<Map<string, string>>(new Map())
   const [, setResolveTick] = useState(0)
+
+  // Stage counts feed both the summary cards and the filter-tab badges.
+  const loadCounts = useCallback(() => {
+    Promise.all(
+      CARD_STAGES.map((stage) =>
+        listJobs({ stage, size: 1 }).then((p) => [stage, p.totalElements] as const).catch(() => [stage, 0] as const),
+      ),
+    ).then((entries) => setCounts(Object.fromEntries(entries)))
+  }, [])
 
   // Prefetch reel labels + stage counts once.
   useEffect(() => {
@@ -53,12 +64,8 @@ export default function HomePage() {
       })
       .catch(() => {})
 
-    Promise.all(
-      CARD_STAGES.map((stage) =>
-        listJobs({ stage, size: 1 }).then((p) => [stage, p.totalElements] as const).catch(() => [stage, 0] as const),
-      ),
-    ).then((entries) => setCounts(Object.fromEntries(entries)))
-  }, [])
+    loadCounts()
+  }, [loadCounts])
 
   const loadJobs = useCallback(async () => {
     setLoading(true)
@@ -130,10 +137,10 @@ export default function HomePage() {
           <span className="page-eyebrow">{today}</span>
           <h1 className="page-title">Dashboard</h1>
         </div>
-        <Link to="/jobs/new" className="btn btn-primary">
+        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
           <Plus size={16} />
           Create Job
-        </Link>
+        </button>
       </div>
 
       <div className="page-body">
@@ -217,9 +224,13 @@ export default function HomePage() {
                   <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
                     {stageFilter ? 'No jobs in this stage.' : 'No jobs yet.'}{' '}
                     {!stageFilter && (
-                      <Link to="/jobs/new" className="btn btn-sm btn-primary" style={{ marginLeft: 'var(--sp-3)' }}>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        style={{ marginLeft: 'var(--sp-3)' }}
+                        onClick={() => setShowCreate(true)}
+                      >
                         Create Job
-                      </Link>
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -274,6 +285,18 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {showCreate && (
+        <JobFormModal
+          mode="create"
+          onClose={() => setShowCreate(false)}
+          onSaved={() => {
+            setShowCreate(false)
+            loadJobs()
+            loadCounts()
+          }}
+        />
+      )}
     </>
   )
 }

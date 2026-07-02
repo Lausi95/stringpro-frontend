@@ -1,7 +1,8 @@
 import { useState, useEffect, type CSSProperties } from 'react'
-import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { ChevronRight, X, Users, Scissors, Calendar } from 'lucide-react'
-import { useToast } from '../../components/Toast'
+import { Link } from 'react-router-dom'
+import { X, Users, Scissors, Calendar } from 'lucide-react'
+import Modal from './Modal'
+import { useToast } from './Toast'
 import {
   listCustomers,
   getCustomer,
@@ -10,18 +11,30 @@ import {
   listReels,
   getReel,
   getSettings,
-  getJob,
   createJob,
   updateJob,
   type CustomerResponse,
+  type JobResponse,
   type RacketResponse,
   type ReelResponse,
   type ReelState,
   type StringSideType,
   type StringSideRequest,
   type StringSideResponse,
-} from '../../lib/api'
-import './JobFormPage.css'
+} from '../lib/api'
+import './JobFormModal.css'
+
+interface JobFormModalProps {
+  mode: 'create' | 'edit'
+  /** Existing Job to edit; required when mode === 'edit'. */
+  initial?: JobResponse
+  /** Pre-selected Customer for a create (from the Customer detail page). */
+  presetCustomer?: CustomerResponse
+  /** Pre-selected Racket id for a create (paired with presetCustomer). */
+  presetRacketId?: string
+  onClose: () => void
+  onSaved: (job: JobResponse) => void
+}
 
 interface SideState {
   type: StringSideType
@@ -169,12 +182,16 @@ function CustomerPicker({
   )
 }
 
-export default function JobFormPage() {
-  const { id } = useParams<{ id: string }>()
-  const isEdit = !!id
-  const navigate = useNavigate()
+export default function JobFormModal({
+  mode,
+  initial,
+  presetCustomer,
+  presetRacketId,
+  onClose,
+  onSaved,
+}: JobFormModalProps) {
+  const isEdit = mode === 'edit'
   const { showToast } = useToast()
-  const [searchParams] = useSearchParams()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -201,7 +218,7 @@ export default function JobFormPage() {
   const [notes, setNotes] = useState('')
   const [serviceFee, setServiceFee] = useState('')
 
-  // ── initial load ──────────────────────────────────────────────
+  // ── initial load (runs once; the modal mounts fresh each time it opens) ──
   useEffect(() => {
     let cancelled = false
     async function init() {
@@ -215,11 +232,11 @@ export default function JobFormPage() {
         if (cancelled) return
         const activeReels = reelsPage.content.filter((r) => r.state !== 'USED_UP')
 
-        if (isEdit && id) {
-          const job = await getJob(id)
+        if (isEdit && initial) {
+          const job = initial
           const [cust, racket] = await Promise.all([
-            getCustomer(job.customerId),
-            getRacket(job.racketId),
+            getCustomer(job.customerId).catch(() => null),
+            getRacket(job.racketId).catch(() => null),
           ])
           // Make sure reels referenced by the job are selectable even if used up.
           const reelMap = new Map(activeReels.map((r) => [r.id, r]))
@@ -230,9 +247,9 @@ export default function JobFormPage() {
           ).filter(Boolean) as ReelResponse[]
           if (cancelled) return
           setReels([...activeReels, ...fetched])
-          setCustomerSel({ id: job.customerId, name: `${cust.firstName} ${cust.lastName}` })
+          setCustomerSel({ id: job.customerId, name: cust ? `${cust.firstName} ${cust.lastName}` : '…' })
           setRacketId(job.racketId)
-          setRacketName(`${racket.brand} ${racket.model}`)
+          setRacketName(racket ? `${racket.brand} ${racket.model}` : '…')
           setHybrid(job.hybrid)
           setMains(sideFromResp(job.mains))
           setCrosses(job.hybrid && job.crosses ? sideFromResp(job.crosses) : emptySide)
@@ -246,14 +263,9 @@ export default function JobFormPage() {
           setReels(activeReels)
           setServiceFee(String(settings.serviceFee ?? 0))
           setDueDate(defaultDueDate())
-          const pCustomer = searchParams.get('customerId')
-          const pRacket = searchParams.get('racketId')
-          if (pCustomer) {
-            const cust = await getCustomer(pCustomer).catch(() => null)
-            if (cust && !cancelled) {
-              setCustomerSel({ id: cust.id, name: `${cust.firstName} ${cust.lastName}` })
-              if (pRacket) setRacketId(pRacket)
-            }
+          if (presetCustomer) {
+            setCustomerSel({ id: presetCustomer.id, name: `${presetCustomer.firstName} ${presetCustomer.lastName}` })
+            if (presetRacketId) setRacketId(presetRacketId)
           }
         }
       } catch {
@@ -266,9 +278,9 @@ export default function JobFormPage() {
     return () => {
       cancelled = true
     }
-    // searchParams read once on mount; customer/racket prefill is intentional.
+    // Preset/initial props are read once on open; the modal remounts per open.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, isEdit])
+  }, [])
 
   // ── rackets for the chosen customer (create mode) ─────────────
   useEffect(() => {
@@ -372,14 +384,14 @@ export default function JobFormPage() {
       serviceFee: serviceFeeNum,
     }
     try {
-      if (isEdit && id) {
-        await updateJob(id, base)
+      if (isEdit && initial) {
+        const updated = await updateJob(initial.id, base)
         showToast('Job updated')
-        navigate(`/jobs/${id}`)
+        onSaved(updated)
       } else {
-        await createJob({ customerId: customerSel!.id, racketId, ...base })
+        const created = await createJob({ customerId: customerSel!.id, racketId, ...base })
         showToast('Job created')
-        navigate('/')
+        onSaved(created)
       }
     } catch {
       setFormError('Failed to save the job. Please try again.')
@@ -468,299 +480,288 @@ export default function JobFormPage() {
     )
   }
 
-  if (loading) {
-    return (
-      <div style={{ padding: 'var(--sp-8)', color: 'var(--fg-muted)', fontFamily: 'var(--font-body)' }}>
-        Loading…
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div style={{ padding: 'var(--sp-8)', color: 'var(--status-overdue-fg)', fontFamily: 'var(--font-body)' }}>
-        {error}
-      </div>
-    )
-  }
-
-  const cancelTarget = isEdit ? `/jobs/${id}` : '/'
-
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="page-header">
-        <div className="page-header-left">
-          <div className="breadcrumb">
-            <Link to="/">Dashboard</Link>
-            <ChevronRight size={12} />
-            <span>{isEdit ? 'Edit Job' : 'New Job'}</span>
-          </div>
-          <h1 className="page-title">{isEdit ? 'Edit Job' : 'Create Job'}</h1>
-        </div>
-        <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
-          <button type="button" className="btn btn-ghost" onClick={() => navigate(cancelTarget)} disabled={saving}>
-            Cancel
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Save Job'}
-          </button>
-        </div>
-      </div>
-
-      <div className="page-body">
-        <div className="job-form-layout">
-          <div>
-            {/* Customer & Racket */}
-            <div className="card" style={{ marginBottom: 'var(--sp-5)' }}>
-              <div className="form-section-title" style={{ marginBottom: 'var(--sp-5)' }}>
-                <Users size={16} />
-                Customer &amp; Racket
-              </div>
-              <div className="form-grid" style={{ gap: 'var(--sp-4)' }}>
-                <div className="field">
-                  <label>Customer</label>
-                  {isEdit ? (
-                    <div className="locked-value">
-                      <span className="locked-name">{customerSel?.name}</span>
-                    </div>
-                  ) : customerSel ? (
-                    <div className="locked-value">
-                      <span className="locked-name">{customerSel.name}</span>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-ghost"
-                        onClick={() => {
-                          setCustomerSel(null)
-                          setRacketId('')
-                        }}
-                        aria-label="Change customer"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    <CustomerPicker
-                      onSelect={(c) => {
-                        setCustomerSel({ id: c.id, name: `${c.firstName} ${c.lastName}` })
-                        setRacketId('')
-                      }}
-                    />
-                  )}
-                </div>
-
-                <div className="field">
-                  <label htmlFor="racket-select">Racket</label>
-                  {isEdit ? (
-                    <div className="locked-value">
-                      <span className="locked-name">{racketName}</span>
-                    </div>
-                  ) : !customerSel ? (
-                    <select id="racket-select" className="select" disabled>
-                      <option>Select a customer first…</option>
-                    </select>
-                  ) : racketsLoading ? (
-                    <select id="racket-select" className="select" disabled>
-                      <option>Loading rackets…</option>
-                    </select>
-                  ) : rackets.length === 0 ? (
-                    <div className="field-hint">
-                      No rackets yet.{' '}
-                      <Link to={`/customers/${customerSel.id}`} style={{ color: 'var(--accent)' }}>
-                        Add a racket
-                      </Link>{' '}
-                      for this customer first.
-                    </div>
-                  ) : (
-                    <select
-                      id="racket-select"
-                      className="select"
-                      value={racketId}
-                      onChange={(e) => setRacketId(e.target.value)}
-                    >
-                      <option value="">Select racket…</option>
-                      {rackets.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.brand} {r.model} · {r.stringMains}×{r.stringCrosses}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              </div>
+    <Modal title={isEdit ? 'Edit Job' : 'Create Job'} onClose={onClose} size="lg">
+      <form onSubmit={handleSubmit}>
+        <div className="modal-body">
+          {loading ? (
+            <div style={{ padding: 'var(--sp-8) 0', color: 'var(--fg-muted)', fontFamily: 'var(--font-body)' }}>
+              Loading…
             </div>
-
-            {/* Stringing */}
-            <div className="card" style={{ marginBottom: 'var(--sp-5)' }}>
-              <div className="form-section-title" style={{ marginBottom: 'var(--sp-5)' }}>
-                <Scissors size={16} />
-                Stringing
-              </div>
-
-              <div className="field" style={{ marginBottom: 'var(--sp-5)' }}>
-                <label>Setup</label>
-                <div className="toggle-group">
-                  <input
-                    type="radio"
-                    id="setup-mono"
-                    name="setup"
-                    checked={!hybrid}
-                    onChange={() => setSetup(false)}
-                  />
-                  <label htmlFor="setup-mono">Mono</label>
-                  <input
-                    type="radio"
-                    id="setup-hybrid"
-                    name="setup"
-                    checked={hybrid}
-                    onChange={() => setSetup(true)}
-                  />
-                  <label htmlFor="setup-hybrid">Hybrid</label>
-                </div>
-                <span className="field-hint">
-                  {hybrid
-                    ? 'Different strings for mains and crosses.'
-                    : 'One string for the whole racket.'}
-                </span>
-              </div>
-
-              {!hybrid ? (
-                <div style={{ marginBottom: 'var(--sp-5)' }}>
-                  <div style={sectionLabelStyle}>String</div>
-                  {renderSideFields(mains, setMains, 'mono')}
-                </div>
-              ) : (
-                <>
-                  <div style={{ marginBottom: 'var(--sp-5)' }}>
-                    <div style={sectionLabelStyle}>Mains</div>
-                    {renderSideFields(mains, setMains, 'mains')}
+          ) : error ? (
+            <div style={{ padding: 'var(--sp-8) 0', color: 'var(--status-overdue-fg)', fontFamily: 'var(--font-body)' }}>
+              {error}
+            </div>
+          ) : (
+            <div className="job-form-layout">
+              <div>
+                {/* Customer & Racket */}
+                <div className="card" style={{ marginBottom: 'var(--sp-5)' }}>
+                  <div className="form-section-title" style={{ marginBottom: 'var(--sp-5)' }}>
+                    <Users size={16} />
+                    Customer &amp; Racket
                   </div>
-                  <div
+                  <div className="form-grid" style={{ gap: 'var(--sp-4)' }}>
+                    <div className="field">
+                      <label>Customer</label>
+                      {isEdit ? (
+                        <div className="locked-value">
+                          <span className="locked-name">{customerSel?.name}</span>
+                        </div>
+                      ) : customerSel ? (
+                        <div className="locked-value">
+                          <span className="locked-name">{customerSel.name}</span>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-ghost"
+                            onClick={() => {
+                              setCustomerSel(null)
+                              setRacketId('')
+                            }}
+                            aria-label="Change customer"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <CustomerPicker
+                          onSelect={(c) => {
+                            setCustomerSel({ id: c.id, name: `${c.firstName} ${c.lastName}` })
+                            setRacketId('')
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor="racket-select">Racket</label>
+                      {isEdit ? (
+                        <div className="locked-value">
+                          <span className="locked-name">{racketName}</span>
+                        </div>
+                      ) : !customerSel ? (
+                        <select id="racket-select" className="select" disabled>
+                          <option>Select a customer first…</option>
+                        </select>
+                      ) : racketsLoading ? (
+                        <select id="racket-select" className="select" disabled>
+                          <option>Loading rackets…</option>
+                        </select>
+                      ) : rackets.length === 0 ? (
+                        <div className="field-hint">
+                          No rackets yet.{' '}
+                          <Link to={`/customers/${customerSel.id}`} style={{ color: 'var(--accent)' }}>
+                            Add a racket
+                          </Link>{' '}
+                          for this customer first.
+                        </div>
+                      ) : (
+                        <select
+                          id="racket-select"
+                          className="select"
+                          value={racketId}
+                          onChange={(e) => setRacketId(e.target.value)}
+                        >
+                          <option value="">Select racket…</option>
+                          {rackets.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.brand} {r.model} · {r.stringMains}×{r.stringCrosses}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stringing */}
+                <div className="card" style={{ marginBottom: 'var(--sp-5)' }}>
+                  <div className="form-section-title" style={{ marginBottom: 'var(--sp-5)' }}>
+                    <Scissors size={16} />
+                    Stringing
+                  </div>
+
+                  <div className="field" style={{ marginBottom: 'var(--sp-5)' }}>
+                    <label>Setup</label>
+                    <div className="toggle-group">
+                      <input
+                        type="radio"
+                        id="setup-mono"
+                        name="setup"
+                        checked={!hybrid}
+                        onChange={() => setSetup(false)}
+                      />
+                      <label htmlFor="setup-mono">Mono</label>
+                      <input
+                        type="radio"
+                        id="setup-hybrid"
+                        name="setup"
+                        checked={hybrid}
+                        onChange={() => setSetup(true)}
+                      />
+                      <label htmlFor="setup-hybrid">Hybrid</label>
+                    </div>
+                    <span className="field-hint">
+                      {hybrid
+                        ? 'Different strings for mains and crosses.'
+                        : 'One string for the whole racket.'}
+                    </span>
+                  </div>
+
+                  {!hybrid ? (
+                    <div style={{ marginBottom: 'var(--sp-5)' }}>
+                      <div style={sectionLabelStyle}>String</div>
+                      {renderSideFields(mains, setMains, 'mono')}
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ marginBottom: 'var(--sp-5)' }}>
+                        <div style={sectionLabelStyle}>Mains</div>
+                        {renderSideFields(mains, setMains, 'mains')}
+                      </div>
+                      <div
+                        style={{
+                          marginBottom: 'var(--sp-5)',
+                          paddingTop: 'var(--sp-5)',
+                          borderTop: '1px solid var(--border)',
+                        }}
+                      >
+                        <div style={sectionLabelStyle}>Crosses</div>
+                        {renderSideFields(crosses, setCrosses, 'crosses')}
+                      </div>
+                    </>
+                  )}
+
+                  <div className="form-grid form-grid-2">
+                    <div className="field">
+                      <label htmlFor="mains-tension">Mains tension (kg)</label>
+                      <input
+                        id="mains-tension"
+                        type="number"
+                        className="input input-mono"
+                        min={5}
+                        max={40}
+                        step="0.5"
+                        placeholder="e.g. 24"
+                        value={mainsTension}
+                        onChange={(e) => onMainsTensionChange(e.target.value)}
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="crosses-tension">Crosses tension (kg)</label>
+                      <input
+                        id="crosses-tension"
+                        type="number"
+                        className="input input-mono"
+                        min={5}
+                        max={40}
+                        step="0.5"
+                        placeholder="defaults to mains − 1"
+                        value={crossesTension}
+                        onChange={(e) => {
+                          setCrossesTouched(true)
+                          setCrossesTension(e.target.value)
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Job details */}
+                <div className="card">
+                  <div className="form-section-title" style={{ marginBottom: 'var(--sp-5)' }}>
+                    <Calendar size={16} />
+                    Job Details
+                  </div>
+                  <div className="form-grid" style={{ gap: 'var(--sp-4)' }}>
+                    <div className="field">
+                      <label htmlFor="due-date">Due date</label>
+                      <input
+                        id="due-date"
+                        type="date"
+                        className="input"
+                        value={dueDate}
+                        onChange={(e) => setDueDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="notes">Notes</label>
+                      <textarea
+                        id="notes"
+                        className="textarea"
+                        placeholder="Any special instructions or notes for this job…"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price summary aside */}
+              <div className="job-form-aside">
+                <div className="card">
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--fg)', marginBottom: 'var(--sp-4)' }}>
+                    Price Summary
+                  </div>
+                  <div className="price-summary">
+                    <div className="price-row">
+                      <span className="price-key">Service fee</span>
+                      <span className="price-val">{money(serviceFeeNum)}</span>
+                    </div>
+                    <div className="price-row">
+                      <span className="price-key">String fee</span>
+                      <span className="price-val">{money(stringFeeNum)}</span>
+                    </div>
+                    <div className="price-total">
+                      <span className="price-key">Total</span>
+                      <span className="price-val">{money(totalNum)}</span>
+                    </div>
+                  </div>
+                  <div className="field" style={{ marginTop: 'var(--sp-5)' }}>
+                    <label htmlFor="service-fee">Service fee (€)</label>
+                    <input
+                      id="service-fee"
+                      type="number"
+                      className="input input-mono"
+                      min={0}
+                      step="0.01"
+                      value={serviceFee}
+                      onChange={(e) => setServiceFee(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {formError && (
+                  <p
                     style={{
-                      marginBottom: 'var(--sp-5)',
-                      paddingTop: 'var(--sp-5)',
-                      borderTop: '1px solid var(--border)',
+                      color: 'var(--status-overdue-fg)',
+                      fontSize: 'var(--text-sm)',
+                      marginTop: 'var(--sp-4)',
                     }}
                   >
-                    <div style={sectionLabelStyle}>Crosses</div>
-                    {renderSideFields(crosses, setCrosses, 'crosses')}
-                  </div>
-                </>
-              )}
-
-              <div className="form-grid form-grid-2">
-                <div className="field">
-                  <label htmlFor="mains-tension">Mains tension (kg)</label>
-                  <input
-                    id="mains-tension"
-                    type="number"
-                    className="input input-mono"
-                    min={5}
-                    max={40}
-                    step="0.5"
-                    placeholder="e.g. 24"
-                    value={mainsTension}
-                    onChange={(e) => onMainsTensionChange(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="crosses-tension">Crosses tension (kg)</label>
-                  <input
-                    id="crosses-tension"
-                    type="number"
-                    className="input input-mono"
-                    min={5}
-                    max={40}
-                    step="0.5"
-                    placeholder="defaults to mains − 1"
-                    value={crossesTension}
-                    onChange={(e) => {
-                      setCrossesTouched(true)
-                      setCrossesTension(e.target.value)
-                    }}
-                  />
-                </div>
+                    {formError}
+                  </p>
+                )}
               </div>
             </div>
+          )}
+        </div>
 
-            {/* Job details */}
-            <div className="card">
-              <div className="form-section-title" style={{ marginBottom: 'var(--sp-5)' }}>
-                <Calendar size={16} />
-                Job Details
-              </div>
-              <div className="form-grid" style={{ gap: 'var(--sp-4)' }}>
-                <div className="field">
-                  <label htmlFor="due-date">Due date</label>
-                  <input
-                    id="due-date"
-                    type="date"
-                    className="input"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="notes">Notes</label>
-                  <textarea
-                    id="notes"
-                    className="textarea"
-                    placeholder="Any special instructions or notes for this job…"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Price summary aside */}
-          <div className="job-form-aside">
-            <div className="card">
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--fg)', marginBottom: 'var(--sp-4)' }}>
-                Price Summary
-              </div>
-              <div className="price-summary">
-                <div className="price-row">
-                  <span className="price-key">Service fee</span>
-                  <span className="price-val">{money(serviceFeeNum)}</span>
-                </div>
-                <div className="price-row">
-                  <span className="price-key">String fee</span>
-                  <span className="price-val">{money(stringFeeNum)}</span>
-                </div>
-                <div className="price-total">
-                  <span className="price-key">Total</span>
-                  <span className="price-val">{money(totalNum)}</span>
-                </div>
-              </div>
-              <div className="field" style={{ marginTop: 'var(--sp-5)' }}>
-                <label htmlFor="service-fee">Service fee (€)</label>
-                <input
-                  id="service-fee"
-                  type="number"
-                  className="input input-mono"
-                  min={0}
-                  step="0.01"
-                  value={serviceFee}
-                  onChange={(e) => setServiceFee(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {formError && (
-              <p
-                style={{
-                  color: 'var(--status-overdue-fg)',
-                  fontSize: 'var(--text-sm)',
-                  marginTop: 'var(--sp-4)',
-                }}
-              >
-                {formError}
-              </p>
-            )}
+        <div className="modal-footer">
+          <span className="job-form-total">
+            Total<strong>{money(totalNum)}</strong>
+          </span>
+          <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={saving || loading || !!error}>
+              {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Save Job'}
+            </button>
           </div>
         </div>
-      </div>
-    </form>
+      </form>
+    </Modal>
   )
 }

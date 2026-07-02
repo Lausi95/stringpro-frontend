@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ChevronRight, Check, ArrowRight, Scissors, Calendar, Receipt, Pencil, Trash2 } from 'lucide-react'
 import { useToast } from '../../components/Toast'
+import JobFormModal from '../../components/JobFormModal'
 import {
   getJob,
   getCustomer,
@@ -216,6 +217,7 @@ export default function JobDetailPage() {
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [showEdit, setShowEdit] = useState(false)
 
   // Done-transition reel prompt (ADR 0009).
   const [showDone, setShowDone] = useState(false)
@@ -709,7 +711,7 @@ export default function JobDetailPage() {
         <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
           <button
             className="btn btn-ghost btn-icon"
-            onClick={() => navigate(`/jobs/${id}/edit`)}
+            onClick={() => setShowEdit(true)}
             title="Edit job"
             aria-label="Edit job"
           >
@@ -1154,6 +1156,19 @@ export default function JobDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showEdit && (
+        <JobFormModal
+          mode="edit"
+          initial={job}
+          onClose={() => setShowEdit(false)}
+          onSaved={(updated) => {
+            setJob(updated)
+            setShowEdit(false)
+            void refreshReelMaps(updated)
+          }}
+        />
       )}
     </>
   )

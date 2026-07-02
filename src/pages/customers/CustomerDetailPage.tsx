@@ -10,6 +10,7 @@ import {
 } from '../../lib/api'
 import CustomerFormModal from '../../components/CustomerFormModal'
 import RacketFormModal from '../../components/RacketFormModal'
+import JobFormModal from '../../components/JobFormModal'
 
 function formatSince(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
@@ -35,6 +36,8 @@ export default function CustomerDetailPage() {
   const [racketsLoading, setRacketsLoading] = useState(true)
   const [racketsError, setRacketsError] = useState<string | null>(null)
   const [racketModal, setRacketModal] = useState<RacketModalState | null>(null)
+  // New-Job modal for this customer; `racketId` pre-selects a specific racket.
+  const [jobCreate, setJobCreate] = useState<{ racketId?: string } | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -102,10 +105,10 @@ export default function CustomerDetailPage() {
           <h1 className="page-title">{fullName}</h1>
         </div>
         <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
-          <Link to={`/jobs/new?customerId=${id}`} className="btn btn-primary">
+          <button className="btn btn-primary" onClick={() => setJobCreate({})}>
             <Plus size={16} />
             New Job
-          </Link>
+          </button>
           <button className="btn btn-ghost" onClick={() => setShowEditCustomer(true)}>
             Edit
           </button>
@@ -185,9 +188,9 @@ export default function CustomerDetailPage() {
                     >
                       Edit
                     </button>
-                    <Link className="btn btn-sm btn-secondary" to={`/jobs/new?customerId=${id}&racketId=${r.id}`}>
+                    <button className="btn btn-sm btn-secondary" onClick={() => setJobCreate({ racketId: r.id })}>
                       String this
-                    </Link>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -248,6 +251,16 @@ export default function CustomerDetailPage() {
             setCustomer(updated)
             setShowEditCustomer(false)
           }}
+        />
+      )}
+
+      {jobCreate && (
+        <JobFormModal
+          mode="create"
+          presetCustomer={customer}
+          presetRacketId={jobCreate.racketId}
+          onClose={() => setJobCreate(null)}
+          onSaved={() => setJobCreate(null)}
         />
       )}
 
