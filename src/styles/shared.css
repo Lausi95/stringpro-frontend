@@ -740,6 +740,11 @@ input, select, textarea { font: inherit; }
 }
 .stage-step {
   flex: 1;
+  /* Allow the flex items to shrink below their content width so a long label
+     (e.g. "Return to Customer", the widest, kept on one line at ≤639px) can't
+     force its step wider than its 1/5 share and skew the even dot spacing. The
+     lone visible label then simply overflows into its empty neighbours' space. */
+  min-width: 0;
   position: relative;
 }
 .stage-step:not(:last-child)::after {
