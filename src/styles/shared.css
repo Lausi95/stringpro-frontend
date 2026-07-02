@@ -620,6 +620,23 @@ input, select, textarea { font: inherit; }
   color: var(--surface);
 }
 
+/* inline checkbox + label row */
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-sm);
+  color: var(--fg);
+  cursor: pointer;
+}
+.checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.checkbox-hint { color: var(--fg-muted); }
+
 /* section divider inside forms */
 .form-section { padding-top: var(--sp-6); border-top: 1px solid var(--border); }
 .form-section-title {

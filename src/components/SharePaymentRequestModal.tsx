@@ -19,6 +19,7 @@ type Identity = Pick<SettingsResponse, 'fullName' | 'iban' | 'paypalHandle'>
 
 export default function SharePaymentRequestModal({ job, customerName, racketName, onClose }: SharePaymentRequestModalProps) {
   const [lang, setLang] = useState<MessageLanguage>('de')
+  const [whatsapp, setWhatsapp] = useState(true)
   const [settings, setSettings] = useState<Identity | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -43,8 +44,9 @@ export default function SharePaymentRequestModal({ job, customerName, racketName
       balance: balanceOf(job),
       settings,
       lang,
+      whatsapp,
     })
-  }, [settings, firstName, racketName, job, lang])
+  }, [settings, firstName, racketName, job, lang, whatsapp])
 
   async function handleCopy() {
     try {
@@ -91,6 +93,15 @@ export default function SharePaymentRequestModal({ job, customerName, racketName
           />
           <label htmlFor="msg-lang-en">English</label>
         </div>
+
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={whatsapp}
+            onChange={(e) => setWhatsapp(e.target.checked)}
+          />
+          <span>WhatsApp formatting <span className="checkbox-hint">(bold labels)</span></span>
+        </label>
 
         <div className="field">
           <label htmlFor="payment-request-preview">Preview</label>
