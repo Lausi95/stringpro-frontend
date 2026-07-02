@@ -22,6 +22,8 @@ No test suite is configured yet.
 
 There is no automated test suite, so **after implementing any visual or behavioral change, verify it in a real browser using the `/claude-in-chrome` skill** — load the affected route against a running `pnpm dev` server, exercise the change, and check the console for errors. `pnpm build` (which runs `tsc`) is the only static gate; treat a clean build plus a browser check as the definition of done.
 
+**Always browser-test against `pnpm dev` (http://localhost:5173), never `pnpm preview`.** The dev server hot-reloads on code changes, so you see edits immediately; `pnpm preview` serves a pre-built `dist/` bundle that goes stale the moment you change a file, leading to a misleading browser experience. Reserve `preview` for verifying production build output specifically (e.g. PWA/service-worker behavior). Keycloak only accepts the `5173` redirect URI, so keep the dev server on its default port.
+
 ## Stack
 
 - **Vite 8** + **React 19** + **TypeScript 6** — pure client-side SPA
