@@ -75,7 +75,7 @@ export default function StringsPage() {
   const [jobsLoading, setJobsLoading] = useState(true)
   const [jobsError, setJobsError] = useState(false)
 
-  const [filter, setFilter] = useState<Filter>('ALL')
+  const [filter, setFilter] = useState<Filter>('IN_USE')
   const [busyStateId, setBusyStateId] = useState<string | null>(null)
 
   const [formModal, setFormModal] = useState<{ mode: 'create' } | { mode: 'edit'; reel: ReelResponse } | null>(null)
