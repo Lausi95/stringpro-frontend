@@ -484,7 +484,8 @@ export async function listJobs(
   params: {
     page?: number
     size?: number
-    stage?: JobStage
+    /** One Stage, or several to match Jobs in any of them (repeated `stage` param). */
+    stage?: JobStage | JobStage[]
     customerId?: string
     racketId?: string
     reelId?: string
@@ -494,7 +495,10 @@ export async function listJobs(
   const query = new URLSearchParams()
   if (params.page !== undefined) query.set('page', String(params.page))
   if (params.size !== undefined) query.set('size', String(params.size))
-  if (params.stage) query.set('stage', params.stage)
+  if (params.stage) {
+    const stages = Array.isArray(params.stage) ? params.stage : [params.stage]
+    stages.forEach((s) => query.append('stage', s))
+  }
   if (params.customerId) query.set('customerId', params.customerId)
   if (params.racketId) query.set('racketId', params.racketId)
   if (params.reelId) query.set('reelId', params.reelId)
@@ -510,7 +514,7 @@ export async function listJobs(
  */
 export async function fetchAllJobs(
   params: {
-    stage?: JobStage
+    stage?: JobStage | JobStage[]
     customerId?: string
     racketId?: string
     reelId?: string

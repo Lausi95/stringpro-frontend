@@ -17,8 +17,15 @@ import JobFormModal from '../components/JobFormModal'
 
 const PAGE_SIZE = 20
 
-/** Stages shown as summary cards (Returned is terminal, excluded). */
+/**
+ * Stages that still need the Stringer's attention — everything short of the
+ * terminal RETURNED. Doubles as the summary-card set and the default job filter.
+ */
 const CARD_STAGES: JobStage[] = ['ANNOUNCED', 'PICKED_UP', 'IN_PROGRESS', 'DONE']
+
+/** The default filter: match Jobs in any non-terminal (attention-needing) stage. */
+const ATTENTION = 'ATTENTION'
+type StageFilter = JobStage | typeof ATTENTION
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -33,7 +40,7 @@ export default function HomePage() {
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [totalElements, setTotalElements] = useState(0)
-  const [stageFilter, setStageFilter] = useState<JobStage | null>(null)
+  const [stageFilter, setStageFilter] = useState<StageFilter>(ATTENTION)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -74,7 +81,7 @@ export default function HomePage() {
       const data = await listJobs({
         page,
         size: PAGE_SIZE,
-        stage: stageFilter ?? undefined,
+        stage: stageFilter === ATTENTION ? CARD_STAGES : stageFilter,
       })
       setJobs(data.content)
       setTotalPages(data.totalPages)
@@ -113,10 +120,13 @@ export default function HomePage() {
     loadJobs()
   }, [loadJobs])
 
-  function selectStage(stage: JobStage | null) {
+  function selectStage(stage: StageFilter) {
     setStageFilter(stage)
     setPage(0)
   }
+
+  // Total Jobs awaiting attention — the sum across the non-terminal stages.
+  const attentionCount = CARD_STAGES.reduce((sum, s) => sum + (counts[s] ?? 0), 0)
 
   function sideText(side?: StringSideResponse): string {
     if (!side) return '—'
@@ -161,10 +171,11 @@ export default function HomePage() {
         <div className="toolbar">
           <div className="filter-tabs" style={{ marginBottom: 0, borderBottom: 'none' }}>
             <button
-              className={`filter-tab${stageFilter === null ? ' active' : ''}`}
-              onClick={() => selectStage(null)}
+              className={`filter-tab${stageFilter === ATTENTION ? ' active' : ''}`}
+              onClick={() => selectStage(ATTENTION)}
             >
-              All
+              Needs Attention
+              {Object.keys(counts).length > 0 && <span className="tab-count">{attentionCount}</span>}
             </button>
             {JOB_STAGES.map((stage) => (
               <button
@@ -222,8 +233,8 @@ export default function HomePage() {
               ) : jobs.length === 0 ? (
                 <tr>
                   <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--sp-12)', color: 'var(--fg-muted)', fontSize: 'var(--text-sm)' }}>
-                    {stageFilter ? 'No jobs in this stage.' : 'No jobs yet.'}{' '}
-                    {!stageFilter && (
+                    {stageFilter === ATTENTION ? 'No jobs need your attention.' : 'No jobs in this stage.'}{' '}
+                    {stageFilter === ATTENTION && (
                       <button
                         className="btn btn-sm btn-primary"
                         style={{ marginLeft: 'var(--sp-3)' }}
